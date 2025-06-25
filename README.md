@@ -2,10 +2,16 @@
 
 A production-grade RAG (Retrieval-Augmented Generation) application for prompt engineering, featuring advanced search capabilities and modern web interfaces.
 
-## 🚀 Live Demo
+## 🚀 Live Demo & Deployment
 
+- **Streamlit Cloud**: [https://your-app-name.streamlit.app](https://your-app-name.streamlit.app) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-name.streamlit.app)
 - **GitHub Pages**: [https://your-username.github.io/enhanced-rag](https://your-username.github.io/enhanced-rag)
 - **API Documentation**: [https://your-username.github.io/enhanced-rag/api-docs.html](https://your-username.github.io/enhanced-rag/api-docs.html)
+- **Docker Images**: [GitHub Container Registry](https://github.com/your-username/enhanced-rag/pkgs/container/enhanced-rag)
+
+[![CI/CD Pipeline](https://github.com/your-username/enhanced-rag/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/your-username/enhanced-rag/actions/workflows/ci-cd.yml)
+[![Streamlit Deployment](https://github.com/your-username/enhanced-rag/actions/workflows/streamlit-deploy.yml/badge.svg)](https://github.com/your-username/enhanced-rag/actions/workflows/streamlit-deploy.yml)
+[![Docker Build](https://github.com/your-username/enhanced-rag/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/your-username/enhanced-rag/actions/workflows/docker-publish.yml)
 
 ## ✨ Features
 
@@ -113,6 +119,74 @@ docker-compose up
 # Streamlit: http://localhost:8501
 ```
 
+## 🚀 Deployment Options
+
+### 1. Streamlit Community Cloud (Recommended)
+
+The easiest way to deploy your app:
+
+1. **Fork this repository** to your GitHub account
+2. **Set up Streamlit Cloud**:
+   - Go to [share.streamlit.io](https://share.streamlit.io/)
+   - Connect your GitHub account
+   - Select this repository
+   - Set main file: `streamlit_app.py`
+3. **Add secrets** in Streamlit Cloud dashboard:
+   ```toml
+   GEMINI_API_KEY = "your_gemini_api_key_here"
+   ```
+4. **Deploy!** - Your app will be live at `https://your-app-name.streamlit.app`
+
+### 2. Docker Deployment
+
+Quick Docker deployment:
+
+```bash
+# Using Docker Compose (recommended)
+docker-compose up --build
+
+# Or using Docker directly
+docker build -t enhanced-rag .
+docker run -p 8000:8000 -p 8501:8501 \
+  -e GEMINI_API_KEY=your_api_key \
+  enhanced-rag
+```
+
+Pre-built images available:
+```bash
+# Pull from GitHub Container Registry
+docker pull ghcr.io/your-username/enhanced-rag:latest
+```
+
+### 3. Manual Deployment
+
+For custom deployments:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Set environment variables
+export GEMINI_API_KEY="your_api_key"
+
+# Run API server
+python api.py
+
+# Run Streamlit (in another terminal)
+streamlit run streamlit_app.py
+```
+
+### 4. GitHub Actions CI/CD
+
+Automated deployment with GitHub Actions:
+
+- **Continuous Integration**: Automated testing and validation
+- **Automated Deployment**: Push to `main` branch to deploy
+- **Docker Publishing**: Multi-platform images published automatically
+- **Dependency Updates**: Weekly automated dependency updates
+
+See [GitHub Actions Setup Guide](docs/GITHUB_ACTIONS_SETUP.md) for detailed instructions.
+
 ## 📖 API Documentation
 
 ### Endpoints
@@ -167,50 +241,6 @@ rag_processor = create_advanced_rag(
     chunk_strategy="semantic",
     embedding_model="sentence-transformers/all-MiniLM-L6-v2"
 )
-```
-
-## 🚀 Deployment
-
-### GitHub Pages (Static)
-
-The application automatically deploys to GitHub Pages via GitHub Actions:
-
-1. Push to `main` branch
-2. GitHub Actions builds static content
-3. Deploys to GitHub Pages
-4. Available at `https://your-username.github.io/enhanced-rag`
-
-### Docker Deployment
-
-```bash
-# Build and run with Docker Compose
-docker-compose up --build
-
-# Or build individual services
-docker build -t enhanced-rag .
-docker run -p 8000:8000 -e GEMINI_API_KEY=your-key enhanced-rag
-```
-
-### Cloud Deployment
-
-The application is cloud-ready and can be deployed to:
-
-- **Heroku**: Use the included `Dockerfile`
-- **AWS ECS/Fargate**: Container-ready
-- **Google Cloud Run**: Serverless deployment
-- **Azure Container Instances**: Easy scaling
-
-## 🧪 Testing
-
-```bash
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=. --cov-report=html
-
-# Run specific test categories
-pytest tests/test_advanced_rag.py -v
 ```
 
 ## 📊 Performance
