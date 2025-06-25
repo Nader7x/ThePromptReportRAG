@@ -75,7 +75,7 @@ def call_rag_directly(prompt: str) -> Dict:
         from EnhancedPrompt import create_production_rag
         
         # Initialize RAG with API key
-        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # Your API key
+        GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") | st.secrets.get("GEMINI_API_KEY")  # Your API key
         rag = create_production_rag(GEMINI_API_KEY)
         
         # Process the prompt
