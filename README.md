@@ -4,14 +4,13 @@ A production-grade RAG (Retrieval-Augmented Generation) application for prompt e
 
 ## 🚀 Live Demo & Deployment
 
-- **Streamlit Cloud**: [https://your-app-name.streamlit.app](https://your-app-name.streamlit.app) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-name.streamlit.app)
-- **GitHub Pages**: [https://your-username.github.io/enhanced-rag](https://your-username.github.io/enhanced-rag)
-- **API Documentation**: [https://your-username.github.io/enhanced-rag/api-docs.html](https://your-username.github.io/enhanced-rag/api-docs.html)
-- **Docker Images**: [GitHub Container Registry](https://github.com/your-username/enhanced-rag/pkgs/container/enhanced-rag)
+- **Streamlit Cloud**: [https://your-app-name.streamlit.app](https://prompt-forge-ai.streamlit.app) [![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://prompt-forge-ai.streamlit.app)
+- **API Documentation**: [https://Nader7x.github.io/ThePromptReportRAG/api-docs.html](https://Nader7x.github.io/ThePromptReportRAG/api-docs.html)
+- **Docker Images**: [GitHub Container Registry](https://github.com/Nader7x/ThePromptReportRAG/pkgs/container/ThePromptReportRAG)
 
-[![CI/CD Pipeline](https://github.com/your-username/enhanced-rag/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/your-username/enhanced-rag/actions/workflows/ci-cd.yml)
-[![Streamlit Deployment](https://github.com/your-username/enhanced-rag/actions/workflows/streamlit-deploy.yml/badge.svg)](https://github.com/your-username/enhanced-rag/actions/workflows/streamlit-deploy.yml)
-[![Docker Build](https://github.com/your-username/enhanced-rag/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/your-username/enhanced-rag/actions/workflows/docker-publish.yml)
+[![CI/CD Pipeline](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/ci-cd.yml)
+[![Streamlit Deployment](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/streamlit-deploy.yml/badge.svg)](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/streamlit-deploy.yml)
+[![Docker Build](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/docker-publish.yml)
 
 ## ✨ Features
 
@@ -72,8 +71,8 @@ User Prompt → Gemini API → FAISS Vector DB → TinyLlama → Enhanced Prompt
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/your-username/enhanced-rag.git
-   cd enhanced-rag
+   git clone https://github.com/Nader7x/ThePromptReportRAG.git
+   cd ThePromptReportRAG
    ```
 
 2. **Install dependencies**
@@ -135,7 +134,7 @@ The easiest way to deploy your app:
    ```toml
    GEMINI_API_KEY = "your_gemini_api_key_here"
    ```
-4. **Deploy!** - Your app will be live at `https://your-app-name.streamlit.app`
+4. **Deploy!** - Your app will be live at `https://<your-app-name>.streamlit.app`
 
 ### 2. Docker Deployment
 
@@ -146,17 +145,17 @@ Quick Docker deployment:
 docker-compose up --build
 
 # Or using Docker directly
-docker build -t enhanced-rag .
+docker build -t ThePromptReportRAG .
 docker run -p 8000:8000 -p 8501:8501 \
   -e GEMINI_API_KEY=your_api_key \
-  enhanced-rag
+  ThePromptReportRAG
 ```
 
 Pre-built images available:
 
 ```bash
 # Pull from GitHub Container Registry
-docker pull ghcr.io/your-username/enhanced-rag:latest
+docker pull ghcr.io/Nader7x/ThePromptReportRAG:latest
 ```
 
 ### 3. Manual Deployment
@@ -289,9 +288,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-username/enhanced-rag/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-username/enhanced-rag/discussions)
-- **Documentation**: [Wiki](https://github.com/your-username/enhanced-rag/wiki)
+- **Issues**: [GitHub Issues](https://github.com/Nader7x/ThePromptReportRAG/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/Nader7x/ThePromptReportRAG/discussions)
+- **Documentation**: [Wiki](https://github.com/Nader7x/ThePromptReportRAG/wiki)
 
 ---
 
