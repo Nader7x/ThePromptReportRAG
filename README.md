@@ -153,6 +153,7 @@ docker run -p 8000:8000 -p 8501:8501 \
 ```
 
 Pre-built images available:
+
 ```bash
 # Pull from GitHub Container Registry
 docker pull ghcr.io/your-username/enhanced-rag:latest

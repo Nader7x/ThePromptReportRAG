@@ -100,8 +100,6 @@ def call_api(endpoint: str, method: str = "GET", data: Dict = None) -> Dict:
     
     # For enhance-prompt endpoint, try direct RAG first
     if endpoint == "/enhance-prompt" and method == "POST" and data:
-        if st.session_state.get('debug_mode', False):
-            st.write("🔧 Using direct RAG system (no API server needed)")
         return call_rag_directly(data.get('prompt', ''))
     
     # Original API calling logic for other endpoints
@@ -115,16 +113,10 @@ def call_api(endpoint: str, method: str = "GET", data: Dict = None) -> Dict:
         response.raise_for_status()
         result = response.json()
         
-        # Debug logging
-        if st.session_state.get('debug_mode', False):
-            st.write(f"API Response: {result}")
-        
         return result
     except requests.exceptions.ConnectionError as e:
         # For enhance-prompt, fallback to direct RAG
         if endpoint == "/enhance-prompt" and method == "POST" and data:
-            if st.session_state.get('debug_mode', False):
-                st.write("🔄 API unavailable, falling back to direct RAG system")
             return call_rag_directly(data.get('prompt', ''))
         
         error_msg = f"Cannot connect to API server at {url}. Using direct RAG fallback."
@@ -177,8 +169,7 @@ page = st.sidebar.selectbox(
     ["🏠 Home", "✨ Prompt Enhancement", "� Analytics"]  # Simplified for working features
 )
 
-# Debug mode toggle
-st.session_state['debug_mode'] = st.sidebar.checkbox("🐛 Debug Mode", value=False)
+
 
 # Health check
 with st.sidebar:
@@ -201,10 +192,6 @@ with st.sidebar:
         # Show default status
         st.success("✅ RAG System: Ready")
         st.info("🧠 Direct Integration Mode")
-        
-    # Show mode info
-    if st.session_state.get('debug_mode', False):
-        st.info("🔧 Mode: Direct RAG (No API Server Required)")
         
     # Troubleshooting tips
     with st.expander("🛠️ System Info"):
@@ -254,7 +241,6 @@ if page == "🏠 Home":
     st.subheader("🚀 Quick Start")
     st.write("1. Go to **Prompt Enhancement** to improve your prompts using AI")
     st.write("2. View **Analytics** to see usage statistics")
-    st.write("3. Enable **Debug Mode** in the sidebar to see detailed responses")
     
     # Demo section
     with st.expander("🎯 Try a Quick Demo"):
@@ -263,10 +249,6 @@ if page == "🏠 Home":
             if demo_prompt:
                 with st.spinner("Enhancing prompt..."):
                     result = call_api("/enhance-prompt", "POST", {"prompt": demo_prompt})
-                    
-                    # Debug info for demo
-                    if st.session_state.get('debug_mode', False):
-                        st.write("🐛 Demo Debug - API Response:", result)
                     
                     # Check if we have a valid response from our RAG system
                     if (result and 
@@ -319,10 +301,6 @@ elif page == "✨ Prompt Enhancement":
                 request_data["technique_hint"] = technique_hint
             
             result = call_api("/enhance-prompt", "POST", request_data)
-            
-            # Debug: Always show what we received (temporary debugging)
-            if st.session_state.get('debug_mode', False):
-                st.write("🐛 Debug - API Response:", result)
             
             # Check success using our RAG system's response format
             is_success = (
@@ -381,9 +359,6 @@ elif page == "✨ Prompt Enhancement":
                             else:
                                 st.write(context)
                     
-                    # Success status
-                    st.success(f"✅ Success: {result.get('success', 'Unknown')}")
-                    
             else:
                 # Enhanced error reporting for our RAG system
                 st.error("❌ Enhancement failed")
@@ -395,17 +370,6 @@ elif page == "✨ Prompt Enhancement":
                         st.warning("⚠️ RAG system processed request but enhancement failed")
                     else:
                         st.warning("ℹ️ RAG system response received but enhancement incomplete")
-                        
-                        # Show what we got for debugging
-                        col1, col2 = st.columns(2)
-                        with col1:
-                            st.write("**Response success:**", result.get('success', 'Not provided'))
-                        with col2:
-                            st.write("**Has enhanced_prompt:**", bool(result.get('enhanced_prompt')))
-                        
-                        # Show debug info if enabled
-                        if st.session_state.get('debug_mode', False):
-                            st.write("**Full response:**", result)
                 else:
                     st.error("No response received from RAG system")
                     

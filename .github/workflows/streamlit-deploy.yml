@@ -2,15 +2,15 @@ name: 🚀 Deploy to Streamlit Cloud
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths:
-      - 'streamlit_app.py'
-      - 'requirements.txt'
-      - '*.py'
+      - "streamlit_app.py"
+      - "requirements.txt"
+      - "*.py"
   workflow_dispatch:
     inputs:
       force_deploy:
-        description: 'Force deployment'
+        description: "Force deployment"
         required: false
         default: false
         type: boolean
@@ -19,200 +19,200 @@ jobs:
   validate-streamlit:
     runs-on: ubuntu-latest
     name: ✅ Validate Streamlit App
-    
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🐍 Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-        cache: 'pip'
-        
-    - name: 📦 Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        
-    - name: 🔍 Validate Streamlit app
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        API_BASE_URL: "http://localhost:8000"
-      run: |
-        # Check if streamlit app can be imported
-        python -c "
-        import streamlit as st
-        import sys
-        sys.path.append('.')
-        try:
-            # Try to import the main app components
-            exec(open('streamlit_app.py').read().split('st.set_page_config')[0])
-            print('✅ Streamlit app imports successfully')
-        except Exception as e:
-            print(f'❌ Error importing app: {e}')
-            sys.exit(1)
-        "
-        
-    - name: 🧪 Test app startup
-      env:
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        API_BASE_URL: "http://localhost:8000"
-      run: |
-        # Start streamlit in headless mode for testing
-        timeout 30s streamlit run streamlit_app.py --server.headless=true --server.port=8501 &
-        sleep 10
-        
-        # Check if streamlit is responding
-        curl -f http://localhost:8501/_stcore/health || {
-          echo "❌ Streamlit health check failed"
-          exit 1
-        }
-        
-        echo "✅ Streamlit app started successfully"
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: 🔍 Validate Streamlit app
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          API_BASE_URL: "http://localhost:8000"
+        run: |
+          # Check if streamlit app can be imported
+          python -c "
+          import streamlit as st
+          import sys
+          sys.path.append('.')
+          try:
+              # Try to import the main app components
+              exec(open('streamlit_app.py').read().split('st.set_page_config')[0])
+              print('✅ Streamlit app imports successfully')
+          except Exception as e:
+              print(f'❌ Error importing app: {e}')
+              sys.exit(1)
+          "
+
+      - name: 🧪 Test app startup
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          API_BASE_URL: "http://localhost:8000"
+        run: |
+          # Start streamlit in headless mode for testing
+          timeout 30s streamlit run streamlit_app.py --server.headless=true --server.port=8501 &
+          sleep 10
+
+          # Check if streamlit is responding
+          curl -f http://localhost:8501/_stcore/health || {
+            echo "❌ Streamlit health check failed"
+            exit 1
+          }
+
+          echo "✅ Streamlit app started successfully"
 
   deploy:
     runs-on: ubuntu-latest
     name: 🚀 Deploy to Streamlit Cloud
     needs: validate-streamlit
     if: github.ref == 'refs/heads/main'
-    
+
     steps:
-    - name: 📥 Checkout code
-      uses: actions/checkout@v4
-      
-    - name: 🚀 Prepare deployment
-      run: |
-        echo "🚀 Preparing Streamlit Community Cloud deployment..."
-        
-        # Check if required files exist
-        if [ ! -f "streamlit_app.py" ]; then
-          echo "❌ streamlit_app.py not found!"
-          exit 1
-        fi
-        
-        if [ ! -f "requirements.txt" ]; then
-          echo "❌ requirements.txt not found!"
-          exit 1
-        fi
-        
-        echo "✅ Required files found"
-        echo "📋 Files for deployment:"
-        ls -la *.py requirements*.txt
-        
-    - name: 📝 Update deployment status
-      run: |
-        cat > deployment_status.md << EOF
-        # 🚀 Streamlit Deployment Status
-        
-        **Last Updated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-        **Commit:** ${{ github.sha }}
-        **Branch:** ${{ github.ref_name }}
-        
-        ## Deployment Information
-        
-        ### 🌐 Live App
-        - **URL:** [https://your-app-name.streamlit.app](https://your-app-name.streamlit.app)
-        - **Status:** Deployed ✅
-        
-        ### 📋 Configuration
-        - **Main File:** streamlit_app.py
-        - **Python Version:** 3.11
-        - **Dependencies:** requirements.txt
-        
-        ### 🔧 Setup Instructions for Streamlit Cloud
-        
-        1. Go to [share.streamlit.io](https://share.streamlit.io/)
-        2. Connect your GitHub account
-        3. Select this repository: \`your-username/enhanced-rag\`
-        4. Set main file: \`streamlit_app.py\`
-        5. Add secrets in Streamlit Cloud dashboard:
-           - \`GEMINI_API_KEY\`: Your Google Gemini API key
-           - \`API_BASE_URL\`: Your API endpoint (if using external API)
-        
-        ### 🔐 Required Secrets
-        Make sure to add these secrets in your Streamlit Cloud app settings:
-        
-        \`\`\`toml
-        # .streamlit/secrets.toml
-        GEMINI_API_KEY = "your_gemini_api_key_here"
-        API_BASE_URL = "your_api_base_url_here"
-        \`\`\`
-        
-        ### 📦 Latest Deployment
-        - **Commit Hash:** ${{ github.sha }}
-        - **Commit Message:** ${{ github.event.head_commit.message }}
-        - **Author:** ${{ github.actor }}
-        EOF
-        
-    - name: 💾 Commit deployment status
-      uses: stefanzweifel/git-auto-commit-action@v5
-      with:
-        commit_message: "🚀 Update deployment status [skip ci]"
-        file_pattern: deployment_status.md
-        
-    - name: 📨 Create deployment notification
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const { data: deployment } = await github.rest.repos.createDeployment({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            ref: context.sha,
-            environment: 'streamlit-cloud',
-            description: 'Deploy to Streamlit Community Cloud',
-            auto_merge: false,
-            required_contexts: []
-          });
-          
-          await github.rest.repos.createDeploymentStatus({
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            deployment_id: deployment.id,
-            state: 'success',
-            environment_url: 'https://your-app-name.streamlit.app',
-            description: 'Successfully deployed to Streamlit Cloud'
-          });
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Prepare deployment
+        run: |
+          echo "🚀 Preparing Streamlit Community Cloud deployment..."
+
+          # Check if required files exist
+          if [ ! -f "streamlit_app.py" ]; then
+            echo "❌ streamlit_app.py not found!"
+            exit 1
+          fi
+
+          if [ ! -f "requirements.txt" ]; then
+            echo "❌ requirements.txt not found!"
+            exit 1
+          fi
+
+          echo "✅ Required files found"
+          echo "📋 Files for deployment:"
+          ls -la *.py requirements*.txt
+
+      - name: 📝 Update deployment status
+        run: |
+          cat > deployment_status.md << EOF
+          # 🚀 Streamlit Deployment Status
+
+          **Last Updated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Commit:** ${{ github.sha }}
+          **Branch:** ${{ github.ref_name }}
+
+          ## Deployment Information
+
+          ### 🌐 Live App
+          - **URL:** [https://your-app-name.streamlit.app](https://your-app-name.streamlit.app)
+          - **Status:** Deployed ✅
+
+          ### 📋 Configuration
+          - **Main File:** streamlit_app.py
+          - **Python Version:** 3.11
+          - **Dependencies:** requirements.txt
+
+          ### 🔧 Setup Instructions for Streamlit Cloud
+
+          1. Go to [share.streamlit.io](https://share.streamlit.io/)
+          2. Connect your GitHub account
+          3. Select this repository: \`your-username/enhanced-rag\`
+          4. Set main file: \`streamlit_app.py\`
+          5. Add secrets in Streamlit Cloud dashboard:
+             - \`GEMINI_API_KEY\`: Your Google Gemini API key
+             - \`API_BASE_URL\`: Your API endpoint (if using external API)
+
+          ### 🔐 Required Secrets
+          Make sure to add these secrets in your Streamlit Cloud app settings:
+
+          \`\`\`toml
+          # .streamlit/secrets.toml
+          GEMINI_API_KEY = "your_gemini_api_key_here"
+          API_BASE_URL = "your_api_base_url_here"
+          \`\`\`
+
+          ### 📦 Latest Deployment
+          - **Commit Hash:** ${{ github.sha }}
+          - **Commit Message:** ${{ github.event.head_commit.message }}
+          - **Author:** ${{ github.actor }}
+          EOF
+
+      - name: 💾 Commit deployment status
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "🚀 Update deployment status [skip ci]"
+          file_pattern: deployment_status.md
+
+      - name: 📨 Create deployment notification
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'streamlit-cloud',
+              description: 'Deploy to Streamlit Community Cloud',
+              auto_merge: false,
+              required_contexts: []
+            });
+
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.id,
+              state: 'success',
+              environment_url: 'https://your-app-name.streamlit.app',
+              description: 'Successfully deployed to Streamlit Cloud'
+            });
 
   notify:
     runs-on: ubuntu-latest
     name: 📨 Notify Deployment
     needs: [deploy]
     if: always()
-    
+
     steps:
-    - name: 📨 Discord Notification
-      uses: Ilshidur/action-discord@master
-      if: always()
-      env:
-        DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-      with:
-        args: |
-          🚀 **Streamlit Deployment Update**
-          
-          **Status:** ${{ needs.deploy.result == 'success' && '✅ Success' || '❌ Failed' }}
-          **App:** [Enhanced RAG](https://your-app-name.streamlit.app)
-          **Commit:** `${{ github.sha }}`
-          **Branch:** ${{ github.ref_name }}
-          **Author:** ${{ github.actor }}
-          
-    - name: 📧 Email Notification
-      if: failure()
-      uses: dawidd6/action-send-mail@v3
-      with:
-        server_address: smtp.gmail.com
-        server_port: 465
-        username: ${{ secrets.EMAIL_USERNAME }}
-        password: ${{ secrets.EMAIL_PASSWORD }}
-        subject: "❌ Streamlit Deployment Failed"
-        body: |
-          The Streamlit deployment for Enhanced RAG failed.
-          
-          Repository: ${{ github.repository }}
-          Commit: ${{ github.sha }}
-          Branch: ${{ github.ref_name }}
-          Author: ${{ github.actor }}
-          
-          Please check the GitHub Actions logs for more details.
-        to: ${{ secrets.NOTIFICATION_EMAIL }}
-        from: GitHub Actions
+      - name: 📨 Discord Notification
+        uses: Ilshidur/action-discord@master
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        with:
+          args: |
+            🚀 **Streamlit Deployment Update**
+
+            **Status:** ${{ needs.deploy.result == 'success' && '✅ Success' || '❌ Failed' }}
+            **App:** [Enhanced RAG](https://your-app-name.streamlit.app)
+            **Commit:** `${{ github.sha }}`
+            **Branch:** ${{ github.ref_name }}
+            **Author:** ${{ github.actor }}
+
+      - name: 📧 Email Notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: "❌ Streamlit Deployment Failed"
+          body: |
+            The Streamlit deployment for Enhanced RAG failed.
+
+            Repository: ${{ github.repository }}
+            Commit: ${{ github.sha }}
+            Branch: ${{ github.ref_name }}
+            Author: ${{ github.actor }}
+
+            Please check the GitHub Actions logs for more details.
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions
