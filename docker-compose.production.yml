@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    restart: unless-stopped
+    ports:
+      - "${API_PORT:-8000}:8000"
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - PYTHONPATH=/app
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ./logs:/app/logs
+      - ./data:/app/data
+      - ./knowledge_base_vectors:/app/knowledge_base_vectors
+      - api_cache:/app/.cache
+    command: python api.py
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - rag_network
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.production
+    restart: unless-stopped
+    ports:
+      - "${STREAMLIT_PORT:-8501}:8501"
+    environment:
+      - API_BASE_URL=http://api:8000
+      - PYTHONPATH=/app
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    depends_on:
+      api:
+        condition: service_healthy
+    volumes:
+      - ./logs:/app/logs
+    command: streamlit run streamlit_app.py --server.port=8501 --server.address=0.0.0.0 --server.headless=true --server.enableCORS=false
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - rag_network
+
+  # Optional: Redis for caching (uncomment if needed)
+  # redis:
+  #   image: redis:7-alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "6379:6379"
+  #   volumes:
+  #     - redis_data:/data
+  #   networks:
+  #     - rag_network
+
+  # Optional: Nginx reverse proxy (uncomment for production)
+  # nginx:
+  #   image: nginx:alpine
+  #   restart: unless-stopped
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./ssl:/etc/ssl:ro
+  #   depends_on:
+  #     - api
+  #     - streamlit
+  #   networks:
+  #     - rag_network
+
+volumes:
+  logs:
+  data:
+  api_cache:
+  # redis_data:
+
+networks:
+  rag_network:
+    driver: bridge

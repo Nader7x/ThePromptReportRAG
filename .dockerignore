@@ -1,0 +1,87 @@
+# Git and version control
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+pip-log.txt
+pip-delete-this-directory.txt
+.pyc
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Logs
+logs/
+*.log
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Documentation build
+docs/_build/
+
+# Temporary files
+*.tmp
+*.temp
+tmp/
+temp/
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# README and documentation (optional - uncomment if you don't want these in image)
+# README.md
+# docs/
+
+# Test files (optional - uncomment if you don't want tests in production)
+# tests/
+# test_*.py
+# *_test.py
+
+# Development scripts (optional)
+# scripts/development/
