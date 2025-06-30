@@ -270,11 +270,11 @@ async def process_document(document: DocumentUpload, background_tasks: Backgroun
             "message": "Document processing started",
             "title": document.title,
             "status": "processing"
-        }
-        
+        } 
     except Exception as e:
         logger.error(f"Error processing document: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 async def _process_document_background(content: str, title: str, metadata: dict):
     """Background task for document processing"""
@@ -285,8 +285,10 @@ async def _process_document_background(content: str, title: str, metadata: dict)
     except Exception as e:
         logger.error(f"Background document processing failed: {e}")
 
+
 # Serve static files (for web interface)
 app.mount("/static", StaticFiles(directory="static"), name="static")
+
 
 # Serve the web interface
 @app.get("/", response_class=HTMLResponse)
@@ -306,6 +308,7 @@ async def serve_web_interface():
             </body>
         </html>
         """)
+
 
 # Development server
 if __name__ == "__main__":
