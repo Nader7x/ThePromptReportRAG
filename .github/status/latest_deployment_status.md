@@ -3,18 +3,18 @@
 **Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 **Repository:** Nader7x/ThePromptReportRAG
 **Branch:** main
-**Commit:** 16f87a36e009483f92db0951243a403af4f44b32
+**Commit:** 503401e331d6cc4cdc56a005442743039e498408
 
 ## 🌐 Application Status
 
 | Service | Status | Response Time | Details |
 |---------|--------|---------------|---------|
-| Streamlit App | 🔴 Offline | 402ms | [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app) |
+| Streamlit App | 🔴 Offline | 300ms | [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app) |
 
 ## 🔍 Health Metrics
 
 - **HTTP Status Code:** 303
-- **Response Time:** 402ms
+- **Response Time:** 300ms
 - **Streamlit Framework:** ✅ Detected
 - **Last Check:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 
@@ -33,4 +33,4 @@
 
 ### Latest Commits
 
-- `16f87a3` Merge branch 'main' of https://github.com/Nader7x/ThePromptReportRAG (13 seconds ago)
+- `503401e` fix: Update workflows to handle non-fast-forward errors and improve health check logic (16 seconds ago)
