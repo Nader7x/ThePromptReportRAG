@@ -319,7 +319,13 @@ jobs:
               ref: 'main'
             });
 
-      - name: 💾 Commit documentation updates
+      - name: � Pull latest changes before doc update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase --autostash
+
+      - name: �💾 Commit documentation updates
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "📝 Update documentation for latest release [skip ci]"

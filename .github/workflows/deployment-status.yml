@@ -120,7 +120,13 @@ jobs:
           echo "response_time: ${{ steps.status.outputs.response_time }}" >> .github/status/status.yml
           echo "streamlit_detected: ${{ steps.status.outputs.streamlit_detected }}" >> .github/status/status.yml
 
-      - name: 📤 Commit status update
+      - name: � Pull latest changes
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase --autostash
+
+      - name: �📤 Commit status update
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "📊 Update deployment status [skip ci]"
@@ -238,7 +244,13 @@ jobs:
             fi
           fi
 
-      - name: 💾 Commit README update
+      - name: � Pull latest changes before README update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase --autostash
+
+      - name: �💾 Commit README update
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "📝 Update deployment status badge [skip ci]"

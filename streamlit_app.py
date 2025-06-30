@@ -410,11 +410,9 @@ elif page == " Analytics":
         'Prompts Enhanced': prompts_enhanced,
         'Searches Performed': searches_performed
     })
-    
     fig = px.line(df_usage, x='Date', y=['Prompts Enhanced', 'Searches Performed'],
                   title="Daily Usage Metrics")
     st.plotly_chart(fig, use_container_width=True)
-    
     # Technique usage
     st.subheader("🏆 Most Used Techniques")
     technique_usage = {
@@ -424,7 +422,6 @@ elif page == " Analytics":
         "Style Prompting": 22,
         "Role Prompting": 18
     }
-    
     fig_pie = px.pie(
         values=list(technique_usage.values()),
         names=list(technique_usage.keys()),
@@ -436,6 +433,6 @@ elif page == " Analytics":
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #666; font-size: 0.8rem;">
-    Enhanced RAG Application v2.0 | Built with Streamlit, Gemini API, FAISS Vector DB, and Sentence Transformers
-</div>
+  Enhanced RAG Application v2.0 | Built with Streamlit, Gemini API, FAISS Vector DB,
+  and Sentence Transformers</div>
 """, unsafe_allow_html=True)

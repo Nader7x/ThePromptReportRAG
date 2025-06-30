@@ -246,7 +246,13 @@ jobs:
           **Validation Status**: ✅ Automated checks passing
           EOF
 
-      - name: 💾 Commit documentation updates
+      - name: � Pull latest changes before doc update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase --autostash
+
+      - name: �💾 Commit documentation updates
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "📝 Update environment and secrets documentation [skip ci]"
@@ -558,7 +564,13 @@ jobs:
           **Last Updated**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
           EOF
 
-      - name: 💾 Commit documentation
+      - name: � Pull latest changes before environment doc update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase --autostash
+
+      - name: �💾 Commit documentation
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "📚 Update environment management documentation [skip ci]"

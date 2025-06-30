@@ -1,5 +1,8 @@
 name: 🏥 Health Check & Monitoring
 
+permissions:
+  issues: write
+
 on:
   schedule:
     # Run health checks every hour
@@ -33,11 +36,14 @@ jobs:
         run: |
           echo "🌐 Checking basic connectivity to Streamlit app..."
 
-          # Check if the app is accessible
+          # Check if the app is accessible (accept success and redirect codes)
           response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.STREAMLIT_APP_URL }})
 
-          if [ "$response" = "200" ]; then
+          if [[ "$response" =~ ^(200|301|302|303|307|308)$ ]]; then
             echo "✅ App is accessible (HTTP $response)"
+            if [[ "$response" =~ ^(301|302|303|307|308)$ ]]; then
+              echo "ℹ️ Note: App returned redirect status (HTTP $response) - this is normal for Streamlit apps"
+            fi
           else
             echo "❌ App returned HTTP $response"
             exit 1
@@ -112,12 +118,12 @@ jobs:
           echo "**Check Type:** ${{ github.event.inputs.check_type || 'scheduled' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          # Get current status
+          # Get current status (accept success and redirect codes)
           response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.STREAMLIT_APP_URL }})
-          if [ "$response" = "200" ]; then
-            echo "**Status:** 🟢 Healthy" >> $GITHUB_STEP_SUMMARY
+          if [[ "$response" =~ ^(200|301|302|303|307|308)$ ]]; then
+            echo "**Status:** 🟢 Healthy (HTTP $response)" >> $GITHUB_STEP_SUMMARY
           else
-            echo "**Status:** 🔴 Issues Detected" >> $GITHUB_STEP_SUMMARY
+            echo "**Status:** 🔴 Issues Detected (HTTP $response)" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY

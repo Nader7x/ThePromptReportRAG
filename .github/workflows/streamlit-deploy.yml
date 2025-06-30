@@ -202,7 +202,13 @@ jobs:
           - **Author:** ${{ github.actor }}
           EOF
 
-      - name: 💾 Commit deployment status
+      - name: � Pull latest changes before deployment status update
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git pull origin main --rebase --autostash
+
+      - name: �💾 Commit deployment status
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "🚀 Update deployment status [skip ci]"
