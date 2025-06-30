@@ -90,41 +90,104 @@ jobs:
           # Get the latest built image
           IMAGE_TAG="${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:latest"
 
-          # Run container in background
-          docker run --rm -d --name test-container \
-            -e GEMINI_API_KEY="test-key-placeholder" \
-            -p 8000:8000 \
-            $IMAGE_TAG
-
-          # Wait for container to start
-          echo "⏳ Waiting for container to start..."
-          sleep 20
-
-          # Check if container is running
-          if ! docker ps | grep test-container; then
-            echo "❌ Container failed to start"
-            docker logs test-container || true
+          # Verify image exists
+          echo "🔍 Checking if image exists..."
+          if ! docker images | grep -q "$(echo $IMAGE_TAG | cut -d: -f1)"; then
+            echo "❌ Image not found in local registry"
+            echo "📋 Available images:"
+            docker images
             exit 1
           fi
 
-          # Basic health check with timeout
+          echo "✅ Image found: $IMAGE_TAG"
+
+          # Show image details
+          echo "📊 Image details:"
+          docker inspect --format='{{.Config.Cmd}}' $IMAGE_TAG || echo "Could not inspect image"
+          docker inspect --format='{{.Config.ExposedPorts}}' $IMAGE_TAG || echo "Could not get exposed ports"
+
+          # Try to run container with detailed logging
+          echo "🚀 Starting container..."
+          if ! CONTAINER_ID=$(docker run --rm -d --name test-container \
+            -e GEMINI_API_KEY="test-key-placeholder" \
+            -p 8000:8000 \
+            $IMAGE_TAG); then
+            echo "❌ Failed to start container"
+            exit 1
+          fi
+
+          echo "📝 Container started with ID: $CONTAINER_ID"
+
+          # Wait for container to initialize
+          echo "⏳ Waiting for container to start..."
+          sleep 5
+
+          # Check if container is still running
+          if ! docker ps --format "table {{.Names}}\t{{.Status}}" | grep test-container; then
+            echo "❌ Container stopped unexpectedly"
+            echo "📋 Container logs:"
+            docker logs test-container 2>&1 || echo "Could not retrieve logs"
+            echo "📋 All containers:"
+            docker ps -a
+            exit 1
+          fi
+
+          echo "✅ Container is running"
+
+          # Show initial logs
+          echo "📋 Container logs (first 20 lines):"
+          docker logs test-container 2>&1 | head -20
+
+          # Extended wait for application startup
+          echo "⏳ Waiting for application to start..."
+          sleep 15
+
+          # Basic health check with detailed error reporting
           echo "🔍 Performing health check..."
           for i in {1..10}; do
-            if curl -f http://localhost:8000/api/health 2>/dev/null; then
+            echo "⏳ Health check attempt $i/10..."
+            
+            # First check if container is still running
+            if ! docker ps | grep -q test-container; then
+              echo "❌ Container stopped during health check"
+              echo "📋 Container logs:"
+              docker logs test-container 2>&1 || echo "Could not retrieve logs"
+              docker stop test-container 2>/dev/null || true
+              exit 1
+            fi
+            
+            # Try health check endpoint
+            if curl -f -s http://localhost:8000/api/health 2>/dev/null; then
               echo "✅ Health check passed"
               break
             elif [ $i -eq 10 ]; then
               echo "❌ Health check failed after 10 attempts"
-              docker logs test-container
+              echo "📋 Final container logs:"
+              docker logs test-container 2>&1 || echo "Could not retrieve logs"
+              echo "📋 Network test:"
+              curl -v http://localhost:8000/api/health 2>&1 || echo "Connection failed"
               docker stop test-container || true
               exit 1
             else
-              echo "⏳ Attempt $i/10 failed, retrying..."
+              echo "⏳ Attempt $i/10 failed, retrying in 3 seconds..."
               sleep 3
             fi
           done
 
+          # Test basic API endpoints
+          echo "🔍 Testing API endpoints..."
+          if curl -f -s http://localhost:8000/api/docs > /dev/null; then
+            echo "✅ API docs endpoint accessible"
+          else
+            echo "⚠️ API docs endpoint not accessible"
+          fi
+
+          # Show final container stats
+          echo "📊 Container stats:"
+          docker stats test-container --no-stream || echo "Could not get stats"
+
           # Cleanup
+          echo "🧹 Cleaning up..."
           docker stop test-container || true
           echo "✅ Docker image test completed successfully"
 
@@ -161,7 +224,7 @@ jobs:
     if: github.event_name != 'pull_request'
 
     steps:
-      - name: � Checkout code
+      - name: 📥 Checkout code
         uses: actions/checkout@v4
 
       - name: 🏷️ Set lowercase image name
@@ -171,7 +234,7 @@ jobs:
           echo "IMAGE_NAME=${IMAGE_NAME_LOWER}" >> $GITHUB_OUTPUT
           echo "Using image name: ${IMAGE_NAME_LOWER}"
 
-      - name: �🔒 Run Trivy vulnerability scanner
+      - name: 🔒 Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:latest
