@@ -203,3 +203,12 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 [![GitHub stars](https://img.shields.io/github/stars/Nader7x/ThePromptReportRAG?style=social)](https://github.com/Nader7x/ThePromptReportRAG)
 [![GitHub forks](https://img.shields.io/github/forks/Nader7x/ThePromptReportRAG?style=social)](https://github.com/Nader7x/ThePromptReportRAG/fork)
+
+## 🚀 Deployment Status
+
+![App Status](https://img.shields.io/badge/App%20Status-🔴%20Offline-brightgreen)
+
+- **Live App**: [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app)
+- **Status**: Offline
+- **Last Updated**: 2025-06-30 21:25:46 UTC
+
