@@ -20,6 +20,9 @@ jobs:
     permissions:
       contents: read
       packages: write
+    outputs:
+      image-name: ${{ steps.image-name.outputs.IMAGE_NAME }}
+      image-digest: ${{ steps.build.outputs.digest }}
 
     steps:
       - name: 📥 Checkout code
@@ -56,7 +59,8 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: 🏗️ Build and push Docker image
+      - name: 🏗️ Build and push main Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -67,232 +71,20 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 🏗️ Build local test image
-        if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64
-          push: false
-          tags: test-image:latest
-          load: true # Load image into local registry for testing
-          cache-from: type=gha
-
       - name: 🏗️ Build and push Production image
+        if: github.event_name != 'pull_request'
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile.production
           platforms: linux/amd64,linux/arm64
-          push: ${{ github.event_name != 'pull_request' }}
+          push: true
           tags: |
             ${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:production
             ${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:production-latest
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: 🧪 Test Docker image
-        if: github.event_name != 'pull_request'
-        run: |
-          # Test the built image
-          echo "🧪 Testing Docker image..."
-
-          # Use the local test image
-          IMAGE_TAG="test-image:latest"
-
-          # Verify IMAGE_TAG is set
-          if [[ -z "$IMAGE_TAG" ]]; then
-            echo "❌ IMAGE_TAG is not set"
-            exit 1
-          fi
-
-          echo "🔍 Using image tag: $IMAGE_TAG"
-
-          # Verify image exists
-          echo "🔍 Checking if image exists..."
-          if ! docker images | grep -q "test-image"; then
-            echo "❌ Image not found in local registry"
-            echo "📋 Available images:"
-            docker images
-            exit 1
-          fi
-
-          echo "✅ Image found: $IMAGE_TAG"
-
-          # Show image details
-          echo "📊 Image details:"
-          docker inspect --format='{{.Config.Cmd}}' $IMAGE_TAG || echo "Could not inspect image"
-          docker inspect --format='{{.Config.ExposedPorts}}' $IMAGE_TAG || echo "Could not get exposed ports"
-          docker inspect --format='{{.Config.Env}}' $IMAGE_TAG || echo "Could not get environment"
-
-          # Cleanup any existing test containers
-          echo "🧹 Cleaning up any existing test containers..."
-          docker stop test-container 2>/dev/null || true
-          docker rm test-container 2>/dev/null || true
-
-          # Try to run container with detailed logging
-          echo "🚀 Starting container..."
-          if ! CONTAINER_ID=$(docker run -d --name test-container \
-            -e GEMINI_API_KEY="test-key-placeholder" \
-            -p 8000:8000 \
-            $IMAGE_TAG); then
-            echo "❌ Failed to start container"
-            exit 1
-          fi
-
-          echo "📝 Container started with ID: $CONTAINER_ID"
-
-          # Function to check container status and get logs
-          check_container_status() {
-            local attempt=$1
-            echo "🔍 Container status check #$attempt:"
-            
-            # Check if container exists and get its status
-            if docker ps -a --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}" | grep test-container; then
-              local status=$(docker ps -a --format "{{.Status}}" --filter "name=test-container")
-              echo "📊 Container status: $status"
-              
-              # If container has exited, get the exit code and logs
-              if [[ $status == *"Exited"* ]]; then
-                local exit_code=$(docker inspect test-container --format='{{.State.ExitCode}}' 2>/dev/null || echo "unknown")
-                echo "❌ Container exited with code: $exit_code"
-                echo "📋 Container logs:"
-                docker logs test-container 2>&1
-                return 1
-              fi
-              
-              # Show recent logs
-              echo "📋 Recent logs:"
-              docker logs --tail 10 test-container 2>&1
-              return 0
-            else
-              echo "❌ Container not found"
-              return 1
-            fi
-          }
-
-          # Test container file system access
-          test_container_filesystem() {
-            echo "🔍 Testing container filesystem access..."
-            
-            # Check if knowledge base vectors exist in container
-            echo "📁 Checking for knowledge base vectors..."
-            if docker exec test-container ls -la /app/knowledge_base_vectors/ 2>/dev/null; then
-              echo "✅ Knowledge base vectors found in container"
-            else
-              echo "❌ Knowledge base vectors missing in container"
-              echo "📋 App directory contents:"
-              docker exec test-container ls -la /app/ 2>/dev/null || echo "Could not list app directory"
-            fi
-            
-            # Check if Python dependencies are installed
-            echo "📦 Checking Python dependencies..."
-            docker exec test-container python -c "import sentence_transformers, faiss, google.generativeai; print('✅ Key dependencies available')" 2>/dev/null || echo "❌ Missing key dependencies"
-            
-            # Check if GEMINI_API_KEY is set
-            echo "🔑 Checking environment variables..."
-            if docker exec test-container printenv GEMINI_API_KEY > /dev/null 2>&1; then
-              echo "✅ GEMINI_API_KEY is set"
-            else
-              echo "❌ GEMINI_API_KEY is not set"
-            fi
-          }
-
-          # Monitor container startup with progressive waits
-          echo "⏳ Monitoring container startup..."
-
-          # Initial check after 3 seconds
-          sleep 3
-          if ! check_container_status 1; then
-            echo "❌ Container failed during initial startup"
-            test_container_filesystem
-            exit 1
-          fi
-
-          # Second check after 10 seconds total
-          sleep 7
-          if ! check_container_status 2; then
-            echo "❌ Container failed during startup phase"
-            test_container_filesystem
-            exit 1
-          fi
-
-          # Third check after 20 seconds total (application should be initializing)
-          sleep 10
-          if ! check_container_status 3; then
-            echo "❌ Container failed during application initialization"
-            test_container_filesystem
-            exit 1
-          fi
-
-          # Final check after 30 seconds total (application should be ready)
-          sleep 10
-          if ! check_container_status 4; then
-            echo "❌ Container failed during final initialization"
-            test_container_filesystem
-            exit 1
-          fi
-
-          echo "✅ Container has been running successfully for 30 seconds"
-
-          # Now run filesystem tests on the running container
-          test_container_filesystem
-
-          # Basic health check with improved error reporting
-          echo "🔍 Performing health check..."
-          for i in {1..10}; do
-            echo "⏳ Health check attempt $i/10..."
-            
-            # First check if container is still running
-            if ! docker ps | grep -q test-container; then
-              echo "❌ Container stopped during health check"
-              echo "📋 Final container logs:"
-              docker logs test-container 2>&1 || echo "Could not retrieve logs"
-              docker stop test-container 2>/dev/null || true
-              exit 1
-            fi
-            
-            # Try health check endpoint with more verbose output
-            if curl -f -s --max-time 5 http://localhost:8000/api/health 2>/dev/null; then
-              echo "✅ Health check passed"
-              break
-            elif [ $i -eq 10 ]; then
-              echo "❌ Health check failed after 10 attempts"
-              echo "📋 Final container logs:"
-              docker logs test-container 2>&1 || echo "Could not retrieve logs"
-              echo "📋 Network diagnostic:"
-              curl -v --max-time 5 http://localhost:8000/api/health 2>&1 || echo "Connection failed"
-              echo "📋 Port check:"
-              netstat -tlnp | grep :8000 || echo "Port 8000 not bound"
-              docker stop test-container || true
-              exit 1
-            else
-              echo "⏳ Attempt $i/10 failed, retrying in 3 seconds..."
-              sleep 3
-            fi
-          done
-
-          # Test basic API endpoints
-          echo "🔍 Testing API endpoints..."
-          if curl -f -s --max-time 5 http://localhost:8000/api/docs > /dev/null; then
-            echo "✅ API docs endpoint accessible"
-          else
-            echo "⚠️ API docs endpoint not accessible"
-          fi
-
-          # Show final container stats
-          echo "📊 Final container stats:"
-          docker stats test-container --no-stream || echo "Could not get stats"
-
-          echo "📋 Final container logs (last 50 lines):"
-          docker logs --tail 50 test-container 2>&1
-
-          # Cleanup
-          echo "🧹 Cleaning up..."
-          docker stop test-container || true
-          docker rm test-container || true
-          echo "✅ Docker image test completed successfully"
 
       - name: 📋 Generate image report
         if: github.event_name != 'pull_request'
@@ -301,24 +93,135 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Images Published" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Image | Tag | Size |" >> $GITHUB_STEP_SUMMARY
-          echo "|-------|-----|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Image | Tag | Registry |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|-----|----------|" >> $GITHUB_STEP_SUMMARY
 
           for tag in ${{ steps.meta.outputs.tags }}; do
-            size=$(docker images --format "table {{.Size}}" $tag | tail -n +2 | head -1)
-            echo "| \`$tag\` | \`$(echo $tag | cut -d':' -f2)\` | $size |" >> $GITHUB_STEP_SUMMARY
+            echo "| \`$(basename $tag)\` | \`$(echo $tag | cut -d':' -f2)\` | \`${{ env.REGISTRY }}\` |" >> $GITHUB_STEP_SUMMARY
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Usage" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "# Pull and run the image" >> $GITHUB_STEP_SUMMARY
+          echo "# Pull and run the latest image" >> $GITHUB_STEP_SUMMARY
           echo "docker pull ${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
           echo "docker run -p 8000:8000 -p 8501:8501 \\" >> $GITHUB_STEP_SUMMARY
           echo "  -e GEMINI_API_KEY=your_api_key \\" >> $GITHUB_STEP_SUMMARY
           echo "  ${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:latest" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
+
+  test-image:
+    runs-on: ubuntu-latest
+    name: 🧪 Test Docker Image
+    needs: build-and-push
+    if: github.event_name != 'pull_request'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
+
+      - name: 🧪 Test Docker image functionality
+        env:
+          IMAGE_TAG: ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image-name }}:latest
+        run: |
+          echo "🧪 Testing Docker image: $IMAGE_TAG"
+
+          # Validate IMAGE_TAG is set
+          if [[ -z "$IMAGE_TAG" ]]; then
+            echo "❌ IMAGE_TAG environment variable is not set"
+            exit 1
+          fi
+
+          # Pull the image
+          echo "� Pulling image..."
+          docker pull "$IMAGE_TAG"
+
+          # Verify image exists
+          if ! docker images | grep -q "$(echo $IMAGE_TAG | cut -d'/' -f2- | cut -d':' -f1)"; then
+            echo "❌ Image not found after pull"
+            docker images
+            exit 1
+          fi
+
+          echo "✅ Image verified: $IMAGE_TAG"
+
+          # Cleanup any existing test containers
+          docker stop test-container 2>/dev/null || true
+          docker rm test-container 2>/dev/null || true
+
+          # Start container with health monitoring
+          echo "🚀 Starting container..."
+          CONTAINER_ID=$(docker run -d --name test-container \
+            -e GEMINI_API_KEY="test-key-placeholder" \
+            -p 8000:8000 \
+            "$IMAGE_TAG")
+
+          if [[ -z "$CONTAINER_ID" ]]; then
+            echo "❌ Failed to start container"
+            exit 1
+          fi
+
+          echo "📝 Container started: $CONTAINER_ID"
+
+          # Wait for application startup
+          echo "⏳ Waiting for application startup..."
+          for i in {1..6}; do
+            sleep 10
+            
+            # Check container status
+            if ! docker ps | grep -q test-container; then
+              echo "❌ Container stopped unexpectedly at check $i"
+              echo "📋 Container logs:"
+              docker logs test-container 2>&1
+              echo "📋 Container exit code:"
+              docker inspect test-container --format='{{.State.ExitCode}}' 2>/dev/null
+              exit 1
+            fi
+            
+            echo "✅ Container check $i/6 passed"
+          done
+
+          # Perform health check
+          echo "🔍 Performing health check..."
+          for attempt in {1..10}; do
+            if curl -f -s --max-time 10 "http://localhost:8000/api/health"; then
+              echo "✅ Health check passed on attempt $attempt"
+              break
+            elif [[ $attempt -eq 10 ]]; then
+              echo "❌ Health check failed after 10 attempts"
+              echo "📋 Final container logs:"
+              docker logs test-container 2>&1
+              echo "📋 Network diagnostic:"
+              curl -v --max-time 5 "http://localhost:8000/api/health" 2>&1 || true
+              docker stop test-container || true
+              exit 1
+            else
+              echo "⏳ Health check attempt $attempt/10 failed, retrying..."
+              sleep 3
+            fi
+          done
+
+          # Test API endpoints
+          echo "🔍 Testing API endpoints..."
+          if curl -f -s --max-time 10 "http://localhost:8000/api/docs" > /dev/null; then
+            echo "✅ API docs endpoint accessible"
+          else
+            echo "⚠️ API docs endpoint not accessible"
+          fi
+
+          # Cleanup
+          echo "🧹 Cleaning up..."
+          docker stop test-container || true
+          docker rm test-container || true
+          echo "✅ Docker image testing completed successfully"
 
   security-scan:
     runs-on: ubuntu-latest
@@ -327,20 +230,17 @@ jobs:
     if: github.event_name != 'pull_request'
 
     steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v4
-
-      - name: 🏷️ Set lowercase image name
-        id: image-name
-        run: |
-          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME_RAW }}" | tr '[:upper:]' '[:lower:]')
-          echo "IMAGE_NAME=${IMAGE_NAME_LOWER}" >> $GITHUB_OUTPUT
-          echo "Using image name: ${IMAGE_NAME_LOWER}"
+      - name: � Log in to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.CR_PAT }}
 
       - name: 🔒 Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:latest
+          image-ref: ${{ env.REGISTRY }}/${{ needs.build-and-push.outputs.image-name }}:latest
           format: "sarif"
           output: "trivy-results.sarif"
 

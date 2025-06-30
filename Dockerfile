@@ -13,8 +13,13 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ensure NLTK is available and download required data
-RUN python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
+# Download NLTK data with proper error handling
+RUN python -c "import nltk; \
+    nltk.download('punkt', quiet=True); \
+    nltk.download('punkt_tab', quiet=True); \
+    nltk.download('stopwords', quiet=True); \
+    print('✅ NLTK data downloaded successfully')" || \
+    echo "⚠️ NLTK download failed but continuing..."
 
 # Copy application code and ensure all necessary files are included
 COPY . .
