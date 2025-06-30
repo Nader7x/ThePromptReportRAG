@@ -15,8 +15,8 @@ RUN pip install uv
 RUN uv venv && . .venv/bin/activate
 RUN uv pip install --no-cache-dir -r requirements.txt
 
-# Download NLTK data
-RUN python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
+# Ensure NLTK is available and download required data
+RUN . .venv/bin/activate && python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
 
 # Copy application code
 COPY . .

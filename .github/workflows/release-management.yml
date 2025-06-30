@@ -1,0 +1,338 @@
+name: 🚀 Release Management
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: "Type of release"
+        required: true
+        default: "patch"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+      release_notes:
+        description: "Release notes"
+        required: false
+        type: string
+
+env:
+  PYTHON_VERSION: "3.11"
+  STREAMLIT_APP_URL: "https://prompt-forge-ai.streamlit.app"
+
+jobs:
+  validate-release:
+    runs-on: ubuntu-latest
+    name: ✅ Validate Release
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: ✅ Run validation tests
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "✅ Running release validation tests..."
+
+          # Test core functionality
+          python -c "
+          import streamlit as st
+          import google.generativeai
+          import fastapi
+          print('✅ Core dependencies are working')
+          "
+
+          # Validate app structure
+          if [ -f "streamlit_app.py" ]; then
+            echo "✅ Main app file exists"
+          else
+            echo "❌ Main app file missing"
+            exit 1
+          fi
+
+          # Check requirements
+          if [ -f "requirements.txt" ]; then
+            echo "✅ Requirements file exists"
+          else
+            echo "❌ Requirements file missing"
+            exit 1
+          fi
+
+      - name: 🌐 Test live deployment
+        run: |
+          echo "🌐 Testing live deployment..."
+
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.STREAMLIT_APP_URL }})
+
+          if [ "$response" = "200" ]; then
+            echo "✅ Live deployment is accessible"
+          else
+            echo "⚠️ Live deployment returned status: $response"
+          fi
+
+  create-release:
+    runs-on: ubuntu-latest
+    name: 🏷️ Create Release
+    needs: validate-release
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🏷️ Generate version tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # Manual release - generate next version
+            LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+            echo "Latest tag: $LATEST_TAG"
+            
+            # Extract version number
+            VERSION=$(echo $LATEST_TAG | sed 's/^v//')
+            IFS='.' read -ra VERSION_PARTS <<< "$VERSION"
+            MAJOR=${VERSION_PARTS[0]}
+            MINOR=${VERSION_PARTS[1]}
+            PATCH=${VERSION_PARTS[2]}
+            
+            # Increment based on release type
+            case "${{ github.event.inputs.release_type }}" in
+              "major")
+                MAJOR=$((MAJOR + 1))
+                MINOR=0
+                PATCH=0
+                ;;
+              "minor")
+                MINOR=$((MINOR + 1))
+                PATCH=0
+                ;;
+              "patch")
+                PATCH=$((PATCH + 1))
+                ;;
+            esac
+            
+            NEW_TAG="v${MAJOR}.${MINOR}.${PATCH}"
+            echo "New tag: $NEW_TAG"
+            echo "tag=$NEW_TAG" >> $GITHUB_OUTPUT
+          else
+            # Tag push - use the pushed tag
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 📝 Generate release notes
+        id: release_notes
+        run: |
+          # Create release notes
+          cat > release_notes.md << 'EOF'
+          ## 🚀 Enhanced RAG Application Release
+
+          ### 🌟 What's New
+
+          EOF
+
+          if [ -n "${{ github.event.inputs.release_notes }}" ]; then
+            echo "${{ github.event.inputs.release_notes }}" >> release_notes.md
+          else
+            # Generate automatic release notes
+            cat >> release_notes.md << 'EOF'
+          - 🔧 Performance improvements and bug fixes
+          - 📦 Updated dependencies for security and stability
+          - ✨ Enhanced user experience
+          - 🛡️ Security improvements
+          EOF
+          fi
+
+          cat >> release_notes.md << 'EOF'
+
+          ### 🌐 Live Demo
+
+          Try the application live: [Enhanced RAG App](https://prompt-forge-ai.streamlit.app)
+
+          ### 🚀 Quick Start
+
+          #### Option 1: Use the Live App
+          Visit [prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app) and start using the application immediately.
+
+          #### Option 2: Deploy Locally
+          ```bash
+          # Clone the repository
+          git clone https://github.com/your-username/enhanced-rag.git
+          cd enhanced-rag
+
+          # Install dependencies
+          pip install -r requirements.txt
+
+          # Set up environment
+          cp .env.template .env
+          # Edit .env with your API keys
+
+          # Run the application
+          streamlit run streamlit_app.py
+          ```
+
+          #### Option 3: Deploy with Docker
+          ```bash
+          # Using pre-built image
+          docker run -p 8501:8501 \
+            -e GEMINI_API_KEY="your_api_key" \
+            ghcr.io/your-username/enhanced-rag:latest
+
+          # Or build locally
+          docker build -t enhanced-rag .
+          docker run -p 8501:8501 -e GEMINI_API_KEY="your_api_key" enhanced-rag
+          ```
+
+          ### 🔧 Configuration
+
+          Required environment variables:
+          - `GEMINI_API_KEY`: Your Google Gemini API key
+
+          Optional environment variables:
+          - `API_BASE_URL`: Base URL for API endpoints
+          - `DEBUG`: Enable debug mode
+
+          ### 📊 Technical Details
+
+          - **Python Version**: 3.11+
+          - **Framework**: Streamlit
+          - **AI Model**: Google Gemini
+          - **Vector Database**: FAISS
+          - **Deployment**: Streamlit Community Cloud
+
+          ### 🛡️ Security
+
+          - All API keys are handled securely
+          - No sensitive data is logged
+          - HTTPS encryption for all communications
+          - Regular security audits via GitHub Actions
+
+          ### 📞 Support
+
+          - 📚 [Documentation](../../docs/)
+          - 🐛 [Report Issues](../../issues)
+          - 💬 [Discussions](../../discussions)
+          - 📧 [Contact](mailto:your-email@domain.com)
+
+          ### 🙏 Acknowledgments
+
+          Thanks to all contributors and the open-source community for making this project possible.
+
+          ---
+
+          **Full Changelog**: [View Changes](../../compare/previous-tag...${{ steps.version.outputs.tag }})
+          EOF
+
+          echo "Release notes generated successfully"
+
+      - name: 🏷️ Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          release_name: "Enhanced RAG ${{ steps.version.outputs.tag }}"
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+
+      - name: 📊 Update release metrics
+        run: |
+          echo "## 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📋 Release Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Detail | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|--------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| **Version** | ${{ steps.version.outputs.tag }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Type** | ${{ github.event.inputs.release_type || 'Tag-based' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Live App** | [${{ env.STREAMLIT_APP_URL }}](${{ env.STREAMLIT_APP_URL }}) |" >> $GITHUB_STEP_SUMMARY
+          echo "| **Docker Image** | \`ghcr.io/${{ github.repository }}:${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🚀 Next Steps" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "1. ✅ Release created and published" >> $GITHUB_STEP_SUMMARY
+          echo "2. 🌐 Streamlit Cloud will auto-deploy from main branch" >> $GITHUB_STEP_SUMMARY
+          echo "3. 🐳 Docker images will be built and published" >> $GITHUB_STEP_SUMMARY
+          echo "4. 📢 Consider announcing the release" >> $GITHUB_STEP_SUMMARY
+
+  post-release:
+    runs-on: ubuntu-latest
+    name: 📢 Post-Release Tasks
+    needs: create-release
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📊 Update documentation
+        run: |
+          # Update version in documentation
+          if [ -f "README.md" ]; then
+            # Add release badge
+            release_badge="![Latest Release](https://img.shields.io/github/v/release/${{ github.repository }})"
+            
+            # Check if badge already exists, if not add it
+            if ! grep -q "Latest Release" README.md; then
+              # Add badge after title
+              sed -i '1a\\n'"$release_badge"'\n' README.md
+            fi
+          fi
+
+      - name: 🔄 Trigger dependent workflows
+        uses: actions/github-script@v7
+        with:
+          script: |
+            // Trigger Docker build for the new release
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'docker-publish.yml',
+              ref: 'main'
+            });
+
+            // Trigger deployment status check
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deployment-status.yml',
+              ref: 'main'
+            });
+
+      - name: 💾 Commit documentation updates
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "📝 Update documentation for latest release [skip ci]"
+          file_pattern: "README.md docs/"
+
+      - name: 📈 Release analytics
+        run: |
+          echo "📈 Collecting release analytics..."
+
+          # Get commit count since last release
+          COMMIT_COUNT=$(git rev-list --count HEAD ^$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo ""))
+
+          # Get contributors
+          CONTRIBUTORS=$(git log --format='%aN' $(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")..HEAD | sort -u | wc -l)
+
+          echo "📊 Release Statistics:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commits in this release**: $COMMIT_COUNT" >> $GITHUB_STEP_SUMMARY
+          echo "- **Contributors**: $CONTRIBUTORS" >> $GITHUB_STEP_SUMMARY
+          echo "- **Release date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY

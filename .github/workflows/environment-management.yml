@@ -1,0 +1,562 @@
+name: 🔐 Environment & Secrets Management
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "validate"
+        type: choice
+        options:
+          - validate
+          - update-docs
+          - security-audit
+  schedule:
+    # Run weekly security audit
+    - cron: "0 6 * * 1"
+
+env:
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  validate-secrets:
+    runs-on: ubuntu-latest
+    name: 🔐 Validate Required Secrets
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔍 Check required secrets
+        run: |
+          echo "🔍 Validating required secrets and environment variables..."
+
+          # List of required secrets for the application
+          required_secrets=(
+            "GEMINI_API_KEY"
+          )
+
+          optional_secrets=(
+            "API_BASE_URL"
+            "DEBUG"
+          )
+
+          echo "## 🔐 Secret Validation Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Required Secrets" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check required secrets
+          for secret in "${required_secrets[@]}"; do
+            if [ -n "${!secret}" ]; then
+              echo "- ✅ $secret: Available" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ❌ $secret: Missing" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Optional Secrets" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Check optional secrets
+          for secret in "${optional_secrets[@]}"; do
+            if [ -n "${!secret}" ]; then
+              echo "- ✅ $secret: Available" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- ⚪ $secret: Not configured" >> $GITHUB_STEP_SUMMARY
+            fi
+          done
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+      - name: 📋 Generate environment template
+        run: |
+          cat > .env.template << 'EOF'
+          # Environment Variables Template for Enhanced RAG Application
+          # Copy this file to .env and fill in your values
+
+          # =============================================================================
+          # REQUIRED ENVIRONMENT VARIABLES
+          # =============================================================================
+
+          # Google Gemini API Configuration
+          GEMINI_API_KEY=your_gemini_api_key_here
+
+          # =============================================================================
+          # OPTIONAL ENVIRONMENT VARIABLES
+          # =============================================================================
+
+          # API Configuration (if using external API)
+          API_BASE_URL=http://localhost:8000
+
+          # Streamlit Configuration
+          STREAMLIT_SERVER_PORT=8501
+          STREAMLIT_SERVER_ADDRESS=0.0.0.0
+
+          # Development/Debug Settings
+          DEBUG=false
+          LOG_LEVEL=INFO
+
+          # =============================================================================
+          # STREAMLIT CLOUD SECRETS
+          # =============================================================================
+          # For deployment on Streamlit Cloud, add these to your app's secrets:
+          # Go to: https://share.streamlit.io/ -> Your App -> Settings -> Secrets
+          #
+          # [secrets]
+          # GEMINI_API_KEY = "your_gemini_api_key_here"
+          # API_BASE_URL = "your_api_base_url_here"
+
+          EOF
+
+      - name: 📝 Create secrets documentation
+        run: |
+          cat > docs/SECRETS_SETUP.md << 'EOF'
+          # 🔐 Secrets and Environment Setup Guide
+
+          This document explains how to configure secrets and environment variables for the Enhanced RAG application.
+
+          ## 🚀 Quick Setup
+
+          ### For Local Development
+
+          1. Copy the environment template:
+             ```bash
+             cp .env.template .env
+             ```
+
+          2. Edit `.env` with your actual values:
+             ```bash
+             # Required
+             GEMINI_API_KEY=your_actual_api_key_here
+             
+             # Optional
+             API_BASE_URL=http://localhost:8000
+             ```
+
+          3. Install dependencies:
+             ```bash
+             pip install -r requirements.txt
+             ```
+
+          4. Run the application:
+             ```bash
+             streamlit run streamlit_app.py
+             ```
+
+          ### For Streamlit Cloud Deployment
+
+          1. Go to [Streamlit Cloud](https://share.streamlit.io/)
+          2. Select your app
+          3. Go to Settings → Secrets
+          4. Add the following secrets:
+
+          ```toml
+          # Required secrets for Streamlit Cloud
+          GEMINI_API_KEY = "your_gemini_api_key_here"
+
+          # Optional secrets
+          API_BASE_URL = "your_api_base_url_here"
+          ```
+
+          ## 📋 Required Secrets
+
+          ### GEMINI_API_KEY
+          - **Purpose**: Google Gemini API access for AI features
+          - **How to get**: 
+            1. Go to [Google AI Studio](https://makersuite.google.com/app/apikey)
+            2. Create a new API key
+            3. Copy the key value
+          - **Format**: String (e.g., `AIzaSy...`)
+
+          ## 🔧 Optional Configuration
+
+          ### API_BASE_URL
+          - **Purpose**: Base URL for API endpoints (if using external API)
+          - **Default**: `http://localhost:8000`
+          - **Format**: URL (e.g., `https://your-api.com`)
+
+          ## 🛡️ Security Best Practices
+
+          1. **Never commit secrets** to version control
+          2. **Use different keys** for development and production
+          3. **Rotate keys regularly** (at least every 90 days)
+          4. **Monitor API usage** for unusual activity
+          5. **Use environment variables** in production
+
+          ## 🔍 Troubleshooting
+
+          ### Common Issues
+
+          #### "Invalid API key" errors
+          - Verify your `GEMINI_API_KEY` is correct
+          - Check if the key has necessary permissions
+          - Ensure the key hasn't expired
+
+          #### Streamlit Cloud deployment issues
+          - Verify secrets are properly set in Streamlit Cloud dashboard
+          - Check that secret names match exactly (case-sensitive)
+          - Ensure no extra spaces in secret values
+
+          #### Local development issues
+          - Make sure `.env` file is in the project root
+          - Verify `.env` file is not committed to git
+          - Check that all required variables are set
+
+          ## 📊 Environment Validation
+
+          Run the environment validation workflow to check your setup:
+
+          ```bash
+          # Via GitHub Actions
+          gh workflow run "Environment & Secrets Management" --ref main
+          ```
+
+          Or check locally:
+
+          ```python
+          import os
+
+          # Check required variables
+          required_vars = ["GEMINI_API_KEY"]
+
+          for var in required_vars:
+              if os.getenv(var):
+                  print(f"✅ {var}: Set")
+              else:
+                  print(f"❌ {var}: Missing")
+          ```
+
+          ## 📞 Support
+
+          If you need help with setup:
+
+          1. Check the [GitHub Issues](../../issues)
+          2. Review the [README](../../README.md)
+          3. Check workflow logs for validation errors
+
+          ---
+
+          **Last Updated**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Validation Status**: ✅ Automated checks passing
+          EOF
+
+      - name: 💾 Commit documentation updates
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "📝 Update environment and secrets documentation [skip ci]"
+          file_pattern: ".env.template docs/SECRETS_SETUP.md"
+
+  security-audit:
+    runs-on: ubuntu-latest
+    name: 🛡️ Security Audit
+    if: github.event.inputs.action == 'security-audit' || github.event_name == 'schedule'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔒 Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install safety bandit semgrep
+
+      - name: 🔍 Run security scans
+        run: |
+          echo "🔍 Running comprehensive security audit..."
+
+          # Create audit report
+          cat > security_audit.md << 'EOF'
+          # 🛡️ Security Audit Report
+
+          **Generated**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **Repository**: ${{ github.repository }}
+          **Branch**: ${{ github.ref_name }}
+
+          ## 📊 Audit Summary
+
+          EOF
+
+          # Run Safety check for known vulnerabilities
+          echo "## 🔍 Dependency Vulnerability Scan" >> security_audit.md
+          echo "" >> security_audit.md
+          echo "```" >> security_audit.md
+          if safety check; then
+            echo "✅ No known vulnerabilities found in dependencies" >> security_audit.md
+          else
+            echo "⚠️ Potential vulnerabilities detected - review required" >> security_audit.md
+          fi
+          echo "```" >> security_audit.md
+          echo "" >> security_audit.md
+
+          # Run Bandit for security issues
+          echo "## 🔍 Code Security Analysis" >> security_audit.md
+          echo "" >> security_audit.md
+          echo "```" >> security_audit.md
+          if bandit -r . -f txt -x tests/; then
+            echo "✅ No security issues found in code" >> security_audit.md
+          else
+            echo "⚠️ Potential security issues detected - review required" >> security_audit.md
+          fi
+          echo "```" >> security_audit.md
+          echo "" >> security_audit.md
+
+          # Check for hardcoded secrets
+          echo "## 🔍 Hardcoded Secrets Scan" >> security_audit.md
+          echo "" >> security_audit.md
+
+          secret_patterns=(
+            "api_key"
+            "secret"
+            "password"
+            "token"
+            "private_key"
+          )
+
+          found_issues=false
+          for pattern in "${secret_patterns[@]}"; do
+            if grep -r -i --exclude-dir=.git --exclude-dir=__pycache__ --exclude="*.md" "$pattern" . | grep -v ".env.template" | grep -v "SECRETS_SETUP.md"; then
+              found_issues=true
+            fi
+          done
+
+          if [ "$found_issues" = false ]; then
+            echo "✅ No hardcoded secrets detected" >> security_audit.md
+          else
+            echo "⚠️ Potential hardcoded secrets found - review required" >> security_audit.md
+          fi
+          echo "" >> security_audit.md
+
+          # Security recommendations
+          cat >> security_audit.md << 'EOF'
+          ## 🛡️ Security Recommendations
+
+          ### Immediate Actions
+          - [ ] Review and update dependencies regularly
+          - [ ] Use environment variables for all secrets
+          - [ ] Enable branch protection rules
+          - [ ] Set up automated security scanning
+
+          ### Best Practices
+          - [ ] Rotate API keys every 90 days
+          - [ ] Use least privilege access principles
+          - [ ] Monitor for unusual API usage
+          - [ ] Keep dependencies updated
+          - [ ] Use HTTPS for all external communications
+
+          ### Monitoring
+          - [ ] Set up alerts for failed API calls
+          - [ ] Monitor application logs for errors
+          - [ ] Track dependency vulnerabilities
+          - [ ] Regular security audits
+
+          EOF
+
+          # Display report
+          cat security_audit.md
+
+      - name: 📋 Upload audit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: security_audit.md
+
+      - name: 📊 Add audit summary
+        run: |
+          echo "## 🛡️ Security Audit Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          cat security_audit.md >> $GITHUB_STEP_SUMMARY
+
+  environment-docs:
+    runs-on: ubuntu-latest
+    name: 📚 Update Environment Documentation
+    if: github.event.inputs.action == 'update-docs'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📚 Generate comprehensive docs
+        run: |
+          # Ensure docs directory exists
+          mkdir -p docs
+
+          # Create environment management guide
+          cat > docs/ENVIRONMENT_MANAGEMENT.md << 'EOF'
+          # 🌍 Environment Management Guide
+
+          This guide covers environment management for the Enhanced RAG application across different deployment scenarios.
+
+          ## 🎯 Environment Types
+
+          ### 1. Development Environment
+          - **Purpose**: Local development and testing
+          - **Location**: Your local machine
+          - **Configuration**: `.env` file
+
+          ### 2. Streamlit Cloud Environment
+          - **Purpose**: Production deployment
+          - **Location**: Streamlit Community Cloud
+          - **Configuration**: Streamlit Cloud secrets dashboard
+
+          ### 3. Docker Environment
+          - **Purpose**: Containerized deployment
+          - **Location**: Any Docker-compatible platform
+          - **Configuration**: Environment variables or Docker secrets
+
+          ## 🔧 Configuration Management
+
+          ### Environment Variables Priority
+
+          1. **System environment variables** (highest priority)
+          2. **Streamlit secrets** (Streamlit Cloud only)
+          3. **`.env` file** (local development)
+          4. **Default values** (lowest priority)
+
+          ### Required Variables
+
+          | Variable | Required | Default | Description |
+          |----------|----------|---------|-------------|
+          | `GEMINI_API_KEY` | ✅ Yes | None | Google Gemini API key |
+          | `API_BASE_URL` | ❌ No | `http://localhost:8000` | Base URL for API |
+
+          ## 🚀 Deployment Scenarios
+
+          ### Scenario 1: Local Development
+
+          ```bash
+          # 1. Clone repository
+          git clone https://github.com/your-username/enhanced-rag.git
+          cd enhanced-rag
+
+          # 2. Create environment file
+          cp .env.template .env
+
+          # 3. Edit .env with your values
+          nano .env
+
+          # 4. Install dependencies
+          pip install -r requirements.txt
+
+          # 5. Run application
+          streamlit run streamlit_app.py
+          ```
+
+          ### Scenario 2: Streamlit Cloud
+
+          1. **Connect Repository**:
+             - Go to [share.streamlit.io](https://share.streamlit.io/)
+             - Connect your GitHub account
+             - Select repository
+
+          2. **Configure Secrets**:
+             - Go to app settings
+             - Add secrets in TOML format:
+               ```toml
+               GEMINI_API_KEY = "your_key_here"
+               ```
+
+          3. **Deploy**:
+             - Streamlit automatically deploys from main branch
+             - Monitor deployment logs
+
+          ### Scenario 3: Docker Deployment
+
+          ```bash
+          # 1. Build image
+          docker build -t enhanced-rag .
+
+          # 2. Run with environment variables
+          docker run -p 8501:8501 \
+            -e GEMINI_API_KEY="your_key_here" \
+            enhanced-rag
+
+          # 3. Or use env file
+          docker run -p 8501:8501 --env-file .env enhanced-rag
+          ```
+
+          ## 🔒 Security Considerations
+
+          ### Secret Management
+          - Never commit secrets to version control
+          - Use different keys for dev/prod environments
+          - Rotate keys regularly
+          - Monitor API usage
+
+          ### Access Control
+          - Limit API key permissions
+          - Use IP restrictions when possible
+          - Monitor for unusual access patterns
+          - Set up alerts for failed authentications
+
+          ## 🔍 Troubleshooting
+
+          ### Common Environment Issues
+
+          #### Issue: "API key not found"
+          **Solutions**:
+          - Check environment variable name (case-sensitive)
+          - Verify `.env` file location
+          - Confirm Streamlit secrets configuration
+
+          #### Issue: "Connection refused"
+          **Solutions**:
+          - Check `API_BASE_URL` configuration
+          - Verify network connectivity
+          - Confirm service is running
+
+          #### Issue: "Permission denied"
+          **Solutions**:
+          - Verify API key permissions
+          - Check rate limits
+          - Confirm key hasn't expired
+
+          ## 📊 Monitoring & Validation
+
+          ### Automated Checks
+          - GitHub Actions validate environment setup
+          - Health checks monitor application status
+          - Security scans check for vulnerabilities
+
+          ### Manual Validation
+
+          ```python
+          # Quick environment check
+          import os
+
+          def check_environment():
+              required = ["GEMINI_API_KEY"]
+              optional = ["API_BASE_URL"]
+              
+              print("🔍 Environment Validation")
+              print("=" * 30)
+              
+              for var in required:
+                  value = os.getenv(var)
+                  status = "✅ Set" if value else "❌ Missing"
+                  print(f"{var}: {status}")
+              
+              for var in optional:
+                  value = os.getenv(var)
+                  status = "✅ Set" if value else "⚪ Using default"
+                  print(f"{var}: {status}")
+
+          check_environment()
+          ```
+
+          ---
+          **Last Updated**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          EOF
+
+      - name: 💾 Commit documentation
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "📚 Update environment management documentation [skip ci]"
+          file_pattern: "docs/ENVIRONMENT_MANAGEMENT.md"

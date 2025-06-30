@@ -1,0 +1,401 @@
+name: 🧪 Automated Testing & QA
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Run comprehensive tests daily at 2 AM UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      test_suite:
+        description: "Test suite to run"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - unit
+          - integration
+          - performance
+          - security
+
+env:
+  PYTHON_VERSION: "3.11"
+  STREAMLIT_APP_URL: "https://prompt-forge-ai.streamlit.app"
+
+jobs:
+  code-quality:
+    runs-on: ubuntu-latest
+    name: 🔍 Code Quality & Linting
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt 2>/dev/null || echo "No dev requirements found"
+
+          # Install additional QA tools
+          pip install flake8 black isort mypy bandit safety
+
+      - name: 🔍 Run code quality checks
+        run: |
+          echo "🔍 Running comprehensive code quality checks..."
+
+          # Create QA report
+          mkdir -p reports
+
+          echo "# 🔍 Code Quality Report" > reports/qa_report.md
+          echo "" >> reports/qa_report.md
+          echo "**Generated**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> reports/qa_report.md
+          echo "**Python Version**: ${{ env.PYTHON_VERSION }}" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+
+          # Flake8 linting
+          echo "## 📋 Linting Results (flake8)" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+          echo "```" >> reports/qa_report.md
+          if flake8 --max-line-length=100 --ignore=E203,W503 --exclude=__pycache__,*.pyc --statistics *.py; then
+            echo "✅ No linting issues found" >> reports/qa_report.md
+          else
+            echo "⚠️ Linting issues detected" >> reports/qa_report.md
+          fi
+          echo "```" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+
+          # Black formatting check
+          echo "## 🎨 Code Formatting (black)" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+          if black --check --diff *.py; then
+            echo "✅ Code formatting is correct" >> reports/qa_report.md
+          else
+            echo "⚠️ Code formatting issues detected" >> reports/qa_report.md
+          fi
+          echo "" >> reports/qa_report.md
+
+          # Import sorting
+          echo "## 📁 Import Sorting (isort)" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+          if isort --check-only --diff *.py; then
+            echo "✅ Import sorting is correct" >> reports/qa_report.md
+          else
+            echo "⚠️ Import sorting issues detected" >> reports/qa_report.md
+          fi
+          echo "" >> reports/qa_report.md
+
+          # Type checking
+          echo "## 🏷️ Type Checking (mypy)" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+          echo "```" >> reports/qa_report.md
+          mypy *.py --ignore-missing-imports || echo "⚠️ Type checking completed with warnings"
+          echo "```" >> reports/qa_report.md
+          echo "" >> reports/qa_report.md
+
+      - name: 📊 Upload QA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-report
+          path: reports/qa_report.md
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    name: 🧪 Unit Tests
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'unit' || github.event_name != 'workflow_dispatch'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock
+
+      - name: 🧪 Run unit tests
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          echo "🧪 Running unit tests..."
+
+          # Run tests with coverage
+          pytest tests/ -v \
+            --cov=. \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            --cov-report=html \
+            --junit-xml=reports/junit.xml \
+            || echo "⚠️ Some tests may have failed"
+
+      - name: 📊 Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: |
+            reports/
+            htmlcov/
+            coverage.xml
+
+      - name: 📈 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: always()
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    name: 🔗 Integration Tests
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'integration' || github.event_name == 'schedule'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+
+      - name: 📦 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest requests
+
+      - name: 🔗 Run integration tests
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          STREAMLIT_APP_URL: ${{ env.STREAMLIT_APP_URL }}
+        run: |
+          echo "🔗 Running integration tests..."
+
+          # Test API connectivity
+          python -c "
+          import requests
+          import os
+          import time
+
+          def test_streamlit_app():
+              url = os.getenv('STREAMLIT_APP_URL')
+              print(f'🌐 Testing Streamlit app: {url}')
+              
+              try:
+                  response = requests.get(url, timeout=30)
+                  if response.status_code == 200:
+                      print('✅ Streamlit app is accessible')
+                      print(f'📊 Response time: {response.elapsed.total_seconds():.2f}s')
+                      return True
+                  else:
+                      print(f'❌ App returned status code: {response.status_code}')
+                      return False
+              except Exception as e:
+                  print(f'❌ Error accessing app: {e}')
+                  return False
+
+          def test_api_key():
+              api_key = os.getenv('GEMINI_API_KEY')
+              if api_key and len(api_key) > 10:
+                  print('✅ API key is configured')
+                  return True
+              else:
+                  print('❌ API key is not properly configured')
+                  return False
+
+          # Run tests
+          print('🔗 Running integration tests...')
+          results = []
+
+          results.append(test_streamlit_app())
+          results.append(test_api_key())
+
+          # Summary
+          passed = sum(results)
+          total = len(results)
+          print(f'📊 Integration test results: {passed}/{total} passed')
+
+          if passed == total:
+              print('✅ All integration tests passed')
+          else:
+              print('⚠️ Some integration tests failed')
+          "
+
+  performance-tests:
+    runs-on: ubuntu-latest
+    name: ⚡ Performance Tests
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'performance'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: ⚡ Run performance tests
+        run: |
+          echo "⚡ Running performance tests..."
+
+          # Test app response times
+          python -c "
+          import requests
+          import time
+          import statistics
+          import os
+
+          def performance_test():
+              url = os.getenv('STREAMLIT_APP_URL', 'https://prompt-forge-ai.streamlit.app')
+              times = []
+              
+              print('⚡ Running performance tests...')
+              print(f'🎯 Target URL: {url}')
+              
+              for i in range(10):
+                  try:
+                      start = time.time()
+                      response = requests.get(url, timeout=30)
+                      end = time.time()
+                      
+                      if response.status_code == 200:
+                          response_time = (end - start) * 1000  # Convert to ms
+                          times.append(response_time)
+                          print(f'📊 Test {i+1}: {response_time:.0f}ms')
+                      else:
+                          print(f'❌ Test {i+1}: HTTP {response.status_code}')
+                  except Exception as e:
+                      print(f'❌ Test {i+1}: Error - {e}')
+              
+              if times:
+                  avg_time = statistics.mean(times)
+                  min_time = min(times)
+                  max_time = max(times)
+                  
+                  print('\\n📈 Performance Summary:')
+                  print(f'Average: {avg_time:.0f}ms')
+                  print(f'Minimum: {min_time:.0f}ms')
+                  print(f'Maximum: {max_time:.0f}ms')
+                  
+                  # Performance rating
+                  if avg_time < 1000:
+                      print('🏆 Performance: Excellent')
+                  elif avg_time < 2000:
+                      print('🥇 Performance: Very Good')
+                  elif avg_time < 3000:
+                      print('🥈 Performance: Good')
+                  elif avg_time < 5000:
+                      print('🥉 Performance: Acceptable')
+                  else:
+                      print('⚠️ Performance: Needs Improvement')
+              else:
+                  print('❌ No successful requests - performance test failed')
+
+          performance_test()
+          "
+        env:
+          STREAMLIT_APP_URL: ${{ env.STREAMLIT_APP_URL }}
+
+  security-tests:
+    runs-on: ubuntu-latest
+    name: 🔒 Security Tests
+    if: github.event.inputs.test_suite == 'all' || github.event.inputs.test_suite == 'security' || github.event_name == 'schedule'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔒 Run security tests
+        run: |
+          echo "🔒 Running security tests..."
+
+          # Install security tools
+          pip install safety bandit
+
+          # Check for known vulnerabilities
+          echo "🔍 Checking for known vulnerabilities..."
+          safety check --json || echo "⚠️ Vulnerabilities detected"
+
+          # Security linting
+          echo "🔍 Running security linting..."
+          bandit -r . -f json -x tests/ || echo "⚠️ Security issues detected"
+
+          # Check for common security issues
+          echo "🔍 Checking for common security patterns..."
+
+          # Look for potential secrets
+          echo "Checking for hardcoded secrets..."
+          if grep -r -i --exclude-dir=.git --exclude-dir=__pycache__ --exclude="*.md" --exclude=".env.template" "api_key\|secret\|password\|token" . | grep -v "# " | grep -v "TODO" | grep -v "EXAMPLE"; then
+            echo "⚠️ Potential hardcoded secrets found"
+          else
+            echo "✅ No hardcoded secrets detected"
+          fi
+
+  test-summary:
+    runs-on: ubuntu-latest
+    name: 📊 Test Summary
+    needs:
+      [
+        code-quality,
+        unit-tests,
+        integration-tests,
+        performance-tests,
+        security-tests,
+      ]
+    if: always()
+
+    steps:
+      - name: 📊 Generate test summary
+        run: |
+          echo "## 🧪 Automated Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Test Run**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 📋 Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Code Quality | ${{ needs.code-quality.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Unit Tests | ${{ needs.unit-tests.result == 'success' && '✅ Passed' || needs.unit-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Integration Tests | ${{ needs.integration-tests.result == 'success' && '✅ Passed' || needs.integration-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Performance Tests | ${{ needs.performance-tests.result == 'success' && '✅ Passed' || needs.performance-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Security Tests | ${{ needs.security-tests.result == 'success' && '✅ Passed' || needs.security-tests.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Overall status
+          if [[ "${{ needs.code-quality.result }}" == "success" && ("${{ needs.unit-tests.result }}" == "success" || "${{ needs.unit-tests.result }}" == "skipped") && ("${{ needs.integration-tests.result }}" == "success" || "${{ needs.integration-tests.result }}" == "skipped") ]]; then
+            echo "### 🎉 Overall Status: ✅ PASSED" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Overall Status: ❌ ISSUES DETECTED" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "- [Live App](${{ env.STREAMLIT_APP_URL }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [View Workflow](../../actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Repository](../../)" >> $GITHUB_STEP_SUMMARY

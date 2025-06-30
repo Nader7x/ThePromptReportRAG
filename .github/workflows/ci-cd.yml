@@ -10,11 +10,12 @@ on:
       deploy_to_streamlit:
         description: "Deploy to Streamlit Community Cloud"
         required: false
-        default: "false"
+        default: false
         type: boolean
 
 env:
   PYTHON_VERSION: "3.11"
+  STREAMLIT_APP_URL: "https://prompt-forge-ai.streamlit.app"
 
 jobs:
   test:
@@ -26,7 +27,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: "pip"
@@ -39,11 +40,17 @@ jobs:
 
       - name: 🔍 Code quality checks
         run: |
+          # Install code quality tools
+          pip install flake8 black isort
+
           # Run flake8 for linting
-          flake8 --max-line-length=100 --ignore=E203,W503 *.py
+          flake8 --max-line-length=100 --ignore=E203,W503 --exclude=__pycache__,*.pyc *.py
 
           # Run black for code formatting check
           black --check --diff *.py
+
+          # Run isort for import sorting
+          isort --check-only --diff *.py
 
       - name: 🧪 Run tests
         env:
@@ -69,7 +76,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 🐍 Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
@@ -135,19 +142,17 @@ jobs:
       - name: 🚀 Trigger Streamlit Cloud deployment
         run: |
           echo "🚀 Streamlit Community Cloud will automatically deploy from main branch"
-          echo "📝 Make sure your app is configured at https://share.streamlit.io/"
+          echo "📝 App configured at: ${{ env.STREAMLIT_APP_URL }}"
           echo "✅ Deployment triggered by push to main branch"
 
-      - name: 📧 Notify deployment
-        uses: 8398a7/action-slack@v3
+      - name: 📧 Deployment notification
         if: always()
-        with:
-          status: ${{ job.status }}
-          text: |
-            🚀 Streamlit deployment ${{ job.status }}
-            📱 App URL: https://your-app-name.streamlit.app
-        env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          echo "## 🚀 Deployment Status" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**App URL:** [${{ env.STREAMLIT_APP_URL }}](${{ env.STREAMLIT_APP_URL }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ${{ job.status == 'success' && '✅ Success' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY
 
   release:
     runs-on: ubuntu-latest
@@ -195,14 +200,14 @@ jobs:
             - Security improvements
 
             ### Deployment
-            - 🌐 Streamlit App: [Live Demo](https://your-app-name.streamlit.app)
+            - 🌐 Streamlit App: [Live Demo](${{ env.STREAMLIT_APP_URL }})
             - 📚 API Docs: Available via FastAPI
-            - 🐳 Docker: `docker pull ghcr.io/your-username/enhanced-rag:${{ steps.tag.outputs.tag }}`
+            - 🐳 Docker: `docker pull ghcr.io/${{ github.repository }}:${{ steps.tag.outputs.tag }}`
 
             ### Installation
             ```bash
-            git clone https://github.com/your-username/enhanced-rag.git
-            cd enhanced-rag
+            git clone https://github.com/${{ github.repository }}.git
+            cd $(basename ${{ github.repository }})
             pip install -r requirements.txt
             ```
           draft: false

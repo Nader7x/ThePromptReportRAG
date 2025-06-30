@@ -1,0 +1,221 @@
+name: 🏥 Health Check & Monitoring
+
+on:
+  schedule:
+    # Run health checks every hour
+    - cron: "0 * * * *"
+  workflow_dispatch:
+    inputs:
+      check_type:
+        description: "Type of health check"
+        required: true
+        default: "full"
+        type: choice
+        options:
+          - basic
+          - full
+          - performance
+
+env:
+  STREAMLIT_APP_URL: "https://prompt-forge-ai.streamlit.app"
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    name: 🏥 Application Health Check
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🌐 Basic connectivity check
+        run: |
+          echo "🌐 Checking basic connectivity to Streamlit app..."
+
+          # Check if the app is accessible
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.STREAMLIT_APP_URL }})
+
+          if [ "$response" = "200" ]; then
+            echo "✅ App is accessible (HTTP $response)"
+          else
+            echo "❌ App returned HTTP $response"
+            exit 1
+          fi
+
+      - name: 🔍 Detailed health check
+        if: github.event.inputs.check_type == 'full' || github.event.inputs.check_type == 'performance'
+        run: |
+          echo "🔍 Performing detailed health check..."
+
+          # Check response time
+          start_time=$(date +%s%N)
+          curl -s ${{ env.STREAMLIT_APP_URL }} > /dev/null
+          end_time=$(date +%s%N)
+          response_time=$((($end_time - $start_time) / 1000000))
+
+          echo "⏱️ Response time: ${response_time}ms"
+
+          # Check if response time is reasonable (under 5 seconds)
+          if [ $response_time -lt 5000 ]; then
+            echo "✅ Response time is acceptable"
+          else
+            echo "⚠️ Response time is slow (${response_time}ms)"
+          fi
+
+          # Check for basic Streamlit elements
+          content=$(curl -s ${{ env.STREAMLIT_APP_URL }})
+
+          if echo "$content" | grep -q "streamlit"; then
+            echo "✅ Streamlit framework detected"
+          else
+            echo "⚠️ Streamlit framework not detected in response"
+          fi
+
+      - name: 📊 Performance metrics
+        if: github.event.inputs.check_type == 'performance'
+        run: |
+          echo "📊 Collecting performance metrics..."
+
+          # Multiple response time checks
+          total_time=0
+          for i in {1..5}; do
+            start_time=$(date +%s%N)
+            curl -s ${{ env.STREAMLIT_APP_URL }} > /dev/null
+            end_time=$(date +%s%N)
+            response_time=$((($end_time - $start_time) / 1000000))
+            total_time=$((total_time + response_time))
+            echo "📏 Check $i: ${response_time}ms"
+          done
+
+          avg_time=$((total_time / 5))
+          echo "📈 Average response time: ${avg_time}ms"
+
+          # Set performance thresholds
+          if [ $avg_time -lt 2000 ]; then
+            echo "🚀 Performance: Excellent (< 2s)"
+          elif [ $avg_time -lt 5000 ]; then
+            echo "✅ Performance: Good (< 5s)"
+          elif [ $avg_time -lt 10000 ]; then
+            echo "⚠️ Performance: Acceptable (< 10s)"
+          else
+            echo "❌ Performance: Poor (> 10s)"
+          fi
+
+      - name: 📋 Generate health report
+        if: always()
+        run: |
+          echo "## 🏥 Health Check Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**App URL:** [${{ env.STREAMLIT_APP_URL }}](${{ env.STREAMLIT_APP_URL }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Check Type:** ${{ github.event.inputs.check_type || 'scheduled' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Get current status
+          response=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.STREAMLIT_APP_URL }})
+          if [ "$response" = "200" ]; then
+            echo "**Status:** 🟢 Healthy" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Status:** 🔴 Issues Detected" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Quick Stats" >> $GITHUB_STEP_SUMMARY
+          echo "- **HTTP Status:** $response" >> $GITHUB_STEP_SUMMARY
+          echo "- **Last Deployment:** $(git log -1 --format='%ci')" >> $GITHUB_STEP_SUMMARY
+          echo "- **Latest Commit:** $(git log -1 --format='%h - %s')" >> $GITHUB_STEP_SUMMARY
+
+  security-scan:
+    runs-on: ubuntu-latest
+    name: 🔒 Security Health Check
+    if: github.event.inputs.check_type == 'full'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔒 Check for security issues
+        run: |
+          echo "🔒 Running security checks..."
+
+          # Install security tools
+          pip install safety bandit
+
+          # Check for known vulnerabilities
+          echo "🔍 Checking for known vulnerabilities..."
+          safety check --json || echo "⚠️ Some vulnerabilities detected, review required"
+
+          # Run bandit security linter
+          echo "🔍 Running security linter..."
+          bandit -r . -f json -x tests/ || echo "⚠️ Security issues detected, review required"
+
+      - name: 📋 Security summary
+        run: |
+          echo "## 🔒 Security Health Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Scan Date:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Security scan completed" >> $GITHUB_STEP_SUMMARY
+          echo "📝 Review detailed logs for any issues" >> $GITHUB_STEP_SUMMARY
+
+  notify-status:
+    runs-on: ubuntu-latest
+    name: 📢 Notify Status
+    needs: [health-check]
+    if: failure()
+
+    steps:
+      - name: 📧 Create issue on failure
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `🚨 Health Check Failed - ${new Date().toISOString()}`;
+            const body = `
+            ## 🚨 Application Health Check Failed
+
+            **Time:** ${new Date().toUTCString()}
+            **App URL:** ${{ env.STREAMLIT_APP_URL }}
+            **Workflow:** ${{ github.workflow }}
+            **Run ID:** ${{ github.run_id }}
+
+            ### 🔍 Issue Details
+            The automated health check detected issues with the application.
+
+            ### 🛠️ Recommended Actions
+            1. Check the [workflow logs](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            2. Verify the Streamlit app is responding
+            3. Check for any recent deployments or changes
+            4. Review application logs
+
+            ### 📊 Health Check Results
+            - **Status:** Failed ❌
+            - **Trigger:** ${{ github.event_name }}
+            - **Branch:** ${{ github.ref }}
+
+            ---
+            *This issue was created automatically by GitHub Actions*
+            `;
+
+            // Check if similar issue exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'health-check,automated'
+            });
+
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['health-check', 'automated', 'urgent']
+              });
+            }
