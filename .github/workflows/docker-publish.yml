@@ -96,8 +96,13 @@ jobs:
           echo "| Image | Tag | Registry |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|-----|----------|" >> $GITHUB_STEP_SUMMARY
 
-          for tag in ${{ steps.meta.outputs.tags }}; do
-            echo "| \`$(basename $tag)\` | \`$(echo $tag | cut -d':' -f2)\` | \`${{ env.REGISTRY }}\` |" >> $GITHUB_STEP_SUMMARY
+          # Parse tags from metadata output and handle multiline properly
+          echo '${{ steps.meta.outputs.tags }}' | while IFS= read -r tag; do
+            if [[ -n "$tag" ]]; then
+              image_name=$(basename "$tag")
+              tag_version=$(echo "$tag" | cut -d':' -f2)
+              echo "| \`$image_name\` | \`$tag_version\` | \`${{ env.REGISTRY }}\` |" >> $GITHUB_STEP_SUMMARY
+            fi
           done
 
           echo "" >> $GITHUB_STEP_SUMMARY

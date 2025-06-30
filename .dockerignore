@@ -1,87 +1,453 @@
-# Git and version control
-.git
+# =============================================================================
+# 🚀 OPTIMIZED .dockerignore FOR FAST BUILDS
+# =============================================================================
+# This file excludes unnecessary files from Docker build context to:
+# - Reduce build context size (faster uploads to Docker daemon)
+# - Speed up COPY operations
+# - Minimize final image size
+# - Improve build cache efficiency
+
+# =============================================================================
+# 📂 VERSION CONTROL & GIT
+# =============================================================================
+.git/
 .gitignore
 .gitattributes
+.github/
+*.patch
+*.diff
 
-# Python
+# =============================================================================
+# 🐍 PYTHON ARTIFACTS & CACHE
+# =============================================================================
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-env/
-venv/
-ENV/
-pip-log.txt
-pip-delete-this-directory.txt
-.pyc
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Virtual environments
-.env
-.venv
-env/
+# Virtual environments (CRITICAL - exclude all patterns to prevent 2GB+ contexts)
+**/.venv/
+**/.env/
+**/venv/
+**/env/
+**/ENV/
+**/.virtualenv/
+.venv/
+.env/
 venv/
+env/
 ENV/
 env.bak/
 venv.bak/
+.virtualenv/
+pyvenv.cfg
+Scripts/
+Lib/
+Include/
+share/
 
-# IDE and editor files
+# Pip
+pip-log.txt
+pip-delete-this-directory.txt
+pip-selfcheck.json
+
+# Python site-packages and installed libraries (CRITICAL for size)
+site-packages/
+Lib/site-packages/
+lib/python*/
+lib64/
+lib/python*/site-packages/
+*/site-packages/
+
+# Python executable and DLLs
+python.exe
+python*.dll
+*.pyd
+*.so
+*.dylib
+*.lib
+*.dll
+*.exe
+
+# Large Python libraries and binaries
+torch*/
+*torch*
+dnnl*
+openblas*
+faiss*
+*scipy*
+*numpy*
+*pandas*
+arrow*
+grpc*
+protobuf*
+
+# =============================================================================
+# 🛠️ DEVELOPMENT TOOLS & IDEs
+# =============================================================================
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.DS_Store
-Thumbs.db
+.vim/
+.emacs.d/
+.atom/
+.sublime-text/
 
-# Jupyter Notebook
-.ipynb_checkpoints
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
 
-# pytest
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# =============================================================================
+# 📓 JUPYTER & NOTEBOOKS
+# =============================================================================
+.ipynb_checkpoints/
+*.ipynb
+notebooks/
+*.jupyter
+
+# =============================================================================
+# 🧪 TESTING & COVERAGE
+# =============================================================================
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
 
-# mypy
+# Test files and directories
+tests/
+test_*.py
+*_test.py
+pytest.ini
+tox.ini
+.testmondata
+
+# =============================================================================
+# 🔍 LINTING & TYPE CHECKING
+# =============================================================================
 .mypy_cache/
 .dmypy.json
 dmypy.json
+.flake8
+.pylintrc
+pyproject.toml
 
-# Logs
+# =============================================================================
+# 📊 DOCUMENTATION & ASSETS
+# =============================================================================
+docs/
+*.md
+*.rst
+*.txt
+!requirements*.txt
+!LICENSE.txt
+!requirements.txt
+mkdocs.yml
+.readthedocs.yml
+
+# Documentation builds
+docs/_build/
+site/
+_site/
+
+# =============================================================================
+# 📝 LOGS & TEMPORARY FILES
+# =============================================================================
 logs/
 *.log
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Documentation build
-docs/_build/
+*.log.*
+log/
+*.out
 
 # Temporary files
 *.tmp
 *.temp
 tmp/
 temp/
+.cache/
+.temp/
 
-# Docker
+# =============================================================================
+# 💾 OS GENERATED FILES
+# =============================================================================
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+
+# =============================================================================
+# 🐳 DOCKER & CONTAINERIZATION
+# =============================================================================
 Dockerfile*
+!Dockerfile
+!Dockerfile.production
 docker-compose*.yml
 .dockerignore
+.docker/
 
-# README and documentation (optional - uncomment if you don't want these in image)
-# README.md
-# docs/
+# Container runtime files
+.container-*
+*.tar
+*.tar.gz
 
-# Test files (optional - uncomment if you don't want tests in production)
-# tests/
-# test_*.py
-# *_test.py
+# =============================================================================
+# ☁️ CLOUD & DEPLOYMENT
+# =============================================================================
+.aws/
+.gcp/
+.azure/
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
 
-# Development scripts (optional)
-# scripts/development/
+# Kubernetes
+*.yaml
+*.yml
+!docker-compose.yml
+!docker-compose.production.yml
+k8s/
+kubernetes/
+
+# =============================================================================
+# 🔐 SECURITY & SECRETS
+# =============================================================================
+.env
+.env.*
+!.env.example
+.secrets
+secrets/
+*.key
+*.pem
+*.p12
+*.crt
+*.cer
+
+# =============================================================================
+# 📦 PACKAGE MANAGERS & DEPENDENCIES
+# =============================================================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Python package manager files (keep requirements.txt)
+Pipfile*
+poetry.lock
+pyproject.toml
+
+# =============================================================================
+# 🎯 ML/AI SPECIFIC EXCLUSIONS
+# =============================================================================
+# Large model files (download them in Dockerfile instead)
+*.bin
+*.model
+*.pkl
+!knowledge_base_vectors/*.pkl
+!knowledge_base_vectors/*.bin
+models/
+checkpoints/
+wandb/
+mlruns/
+
+# Hugging Face cache (can be huge)
+.cache/
+~/.cache/
+/root/.cache/
+*/.cache/
+cache/
+
+# Large AI/ML datasets and weights
+*.safetensors
+*.onnx
+*.pt
+*.pth
+*.h5
+*.hdf5
+*.npy
+*.npz
+
+# Data files (unless specifically needed)
+data/
+datasets/
+*.csv
+*.json
+!knowledge_base_vectors/*.json
+!requirements*.json
+*.parquet
+*.feather
+*.arrow
+
+# Large compressed files
+*.zip
+*.tar
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+*.gz
+*.bz2
+
+# =============================================================================
+# 🚀 BUILD OPTIMIZATION EXCLUSIONS
+# =============================================================================
+# Exclude development scripts
+scripts/development/
+scripts/local/
+scripts/debug/
+
+# Exclude example and demo files
+examples/
+demos/
+samples/
+
+# Exclude benchmarks and profiling
+benchmarks/
+profiling/
+*.prof
+
+# Large build artifacts
+build/
+dist/
+*.whl
+*.tar.gz
+*.egg
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Media and large assets
+*.mp4
+*.avi
+*.mov
+*.wmv
+*.mp3
+*.wav
+*.flac
+
+# =============================================================================
+# 🎨 ASSETS & MEDIA (if not needed in container)
+# =============================================================================
+# Uncomment if you don't need these in production
+# images/
+# assets/
+# static/media/
+# *.png
+# *.jpg
+# *.jpeg
+# *.gif
+# *.svg
+# *.ico
+
+# =============================================================================
+# 🔧 CONFIGURATION FILES (keep only essential ones)
+# =============================================================================
+# Exclude development configs
+.editorconfig
+.pre-commit-config.yaml
+.commitlintrc*
+.eslintrc*
+.prettierrc*
+
+# Exclude CI/CD files (not needed in container)
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+Jenkinsfile
+azure-pipelines.yml
+
+# =============================================================================
+# 📈 ANALYTICS & MONITORING
+# =============================================================================
+.nyc_output/
+coverage/
+.coverage*
+.sass-cache/
+
+# =============================================================================
+# 🔍 ADDITIONAL PERFORMANCE OPTIMIZATIONS
+# =============================================================================
+# Exclude any backup or temporary large files
+*.backup
+*.bak
+*.old
+*.orig
+*.save
+*.swp
+*.tmp
+
+# Exclude any downloaded/cached content
+downloads/
+.download/
+.downloads/
+
+# Exclude any large development files
+*.dump
+*.dmp
+*.core
+
+# Exclude version control systems other than git
+.svn/
+.hg/
+.bzr/
+CVS/
+
+# =============================================================================
+# 🎯 KEEP THESE ESSENTIAL FILES
+# =============================================================================
+# The following are NOT ignored (explicitly included):
+# - requirements.txt
+# - knowledge_base_vectors/ (essential for the app)
+# - static/ (if needed for web interface)
+# - All .py files
+# - Dockerfile and Dockerfile.production
