@@ -1,7 +1,7 @@
 # 🚀 Streamlit Deployment Status
 
-**Last Updated:** 2025-06-30 21:27:52 UTC
-**Commit:** 503401e331d6cc4cdc56a005442743039e498408
+**Last Updated:** 2025-06-30 21:55:38 UTC
+**Commit:** 687a63c54afc152a4e67324be27c63c3976b1cfc
 **Branch:** main
 
 ## Deployment Information
@@ -35,6 +35,21 @@ API_BASE_URL = "your_api_base_url_here"
 ```
 
 ### 📦 Latest Deployment
-- **Commit Hash:** 503401e331d6cc4cdc56a005442743039e498408
-- **Commit Message:** fix: Update workflows to handle non-fast-forward errors and improve health check logic
+- **Commit Hash:** 687a63c54afc152a4e67324be27c63c3976b1cfc
+- **Commit Message:** Enhance CI/CD workflows and application code
+
+- Updated CI/CD workflows for improved linting and testing:
+  - Adjusted flake8 settings to focus on critical issues and increased line length limit.
+  - Enhanced error handling and logging in Docker publish workflow.
+  - Improved Streamlit deployment workflow with detailed repository state verification and file checks.
+
+- Refined Dockerfiles for better dependency management and server startup:
+  - Removed unnecessary virtual environment setup.
+  - Changed CMD to use uvicorn for running FastAPI server.
+
+- Fixed Python linting issues in streamlit_app.py:
+  - Resolved line length, trailing whitespace, and indentation problems.
+  - Improved error handling and response reporting in API calls.
+
+- Added documentation for Docker container startup and Python linting fixes.
 - **Author:** Nader7x
