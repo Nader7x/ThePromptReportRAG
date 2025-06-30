@@ -9,29 +9,21 @@ import json
 from pathlib import Path
 from datetime import datetime
 
+
 def generate_api_docs():
     """Generate comprehensive API documentation"""
-    
+
     api_docs = {
         "openapi": "3.0.0",
         "info": {
             "title": "Enhanced RAG API",
             "description": "Production-grade RAG application for prompt engineering",
             "version": "3.0.0",
-            "contact": {
-                "name": "Enhanced RAG Team",
-                "url": "https://github.com/your-username/enhanced-rag"
-            }
+            "contact": {"name": "Enhanced RAG Team", "url": "https://github.com/your-username/enhanced-rag"},
         },
         "servers": [
-            {
-                "url": "https://your-username.github.io/enhanced-rag",
-                "description": "GitHub Pages Deployment"
-            },
-            {
-                "url": "http://localhost:8000",
-                "description": "Local Development"
-            }
+            {"url": "https://your-username.github.io/enhanced-rag", "description": "GitHub Pages Deployment"},
+            {"url": "http://localhost:8000", "description": "Local Development"},
         ],
         "paths": {
             "/api/health": {
@@ -48,16 +40,13 @@ def generate_api_docs():
                                         "properties": {
                                             "status": {"type": "string"},
                                             "timestamp": {"type": "string"},
-                                            "services": {
-                                                "type": "object",
-                                                "additionalProperties": {"type": "string"}
-                                            }
-                                        }
+                                            "services": {"type": "object", "additionalProperties": {"type": "string"}},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/api/enhance-prompt": {
@@ -71,19 +60,13 @@ def generate_api_docs():
                                 "schema": {
                                     "type": "object",
                                     "properties": {
-                                        "prompt": {
-                                            "type": "string",
-                                            "description": "The user prompt to enhance"
-                                        },
-                                        "technique_hint": {
-                                            "type": "string",
-                                            "description": "Optional technique hint"
-                                        }
+                                        "prompt": {"type": "string", "description": "The user prompt to enhance"},
+                                        "technique_hint": {"type": "string", "description": "Optional technique hint"},
                                     },
-                                    "required": ["prompt"]
+                                    "required": ["prompt"],
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "200": {
@@ -99,13 +82,13 @@ def generate_api_docs():
                                             "success": {"type": "boolean"},
                                             "processing_time": {"type": "number"},
                                             "context_used": {"type": "object"},
-                                            "error": {"type": "string"}
-                                        }
+                                            "error": {"type": "string"},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/api/search": {
@@ -123,19 +106,14 @@ def generate_api_docs():
                                         "strategy": {
                                             "type": "string",
                                             "enum": ["hybrid", "vector_only", "keyword_only"],
-                                            "default": "hybrid"
+                                            "default": "hybrid",
                                         },
-                                        "top_k": {
-                                            "type": "integer",
-                                            "minimum": 1,
-                                            "maximum": 20,
-                                            "default": 5
-                                        }
+                                        "top_k": {"type": "integer", "minimum": 1, "maximum": 20, "default": 5},
                                     },
-                                    "required": ["query"]
+                                    "required": ["query"],
                                 }
                             }
-                        }
+                        },
                     },
                     "responses": {
                         "200": {
@@ -157,18 +135,18 @@ def generate_api_docs():
                                                         "keyword_score": {"type": "number"},
                                                         "hybrid_score": {"type": "number"},
                                                         "rank": {"type": "integer"},
-                                                        "metadata": {"type": "object"}
-                                                    }
-                                                }
+                                                        "metadata": {"type": "object"},
+                                                    },
+                                                },
                                             },
                                             "total_results": {"type": "integer"},
-                                            "search_time": {"type": "number"}
-                                        }
+                                            "search_time": {"type": "number"},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/api/techniques": {
@@ -183,17 +161,14 @@ def generate_api_docs():
                                     "schema": {
                                         "type": "object",
                                         "properties": {
-                                            "techniques": {
-                                                "type": "array",
-                                                "items": {"type": "string"}
-                                            },
-                                            "total_count": {"type": "integer"}
-                                        }
+                                            "techniques": {"type": "array", "items": {"type": "string"}},
+                                            "total_count": {"type": "integer"},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         }
-                    }
+                    },
                 }
             },
             "/api/techniques/{technique_name}": {
@@ -206,7 +181,7 @@ def generate_api_docs():
                             "in": "path",
                             "required": True,
                             "schema": {"type": "string"},
-                            "description": "Name of the technique"
+                            "description": "Name of the technique",
                         }
                     ],
                     "responses": {
@@ -219,45 +194,37 @@ def generate_api_docs():
                                         "properties": {
                                             "definition": {"type": "string"},
                                             "description": {"type": "string"},
-                                            "examples": {
-                                                "type": "array",
-                                                "items": {"type": "string"}
-                                            }
-                                        }
+                                            "examples": {"type": "array", "items": {"type": "string"}},
+                                        },
                                     }
                                 }
-                            }
+                            },
                         },
-                        "404": {
-                            "description": "Technique not found"
-                        }
-                    }
+                        "404": {"description": "Technique not found"},
+                    },
                 }
-            }
+            },
         },
         "components": {
             "schemas": {
                 "PromptRequest": {
                     "type": "object",
-                    "properties": {
-                        "prompt": {"type": "string"},
-                        "technique_hint": {"type": "string"}
-                    },
-                    "required": ["prompt"]
+                    "properties": {"prompt": {"type": "string"}, "technique_hint": {"type": "string"}},
+                    "required": ["prompt"],
                 },
                 "SearchRequest": {
                     "type": "object",
                     "properties": {
                         "query": {"type": "string"},
                         "strategy": {"type": "string"},
-                        "top_k": {"type": "integer"}
+                        "top_k": {"type": "integer"},
                     },
-                    "required": ["query"]
-                }
+                    "required": ["query"],
+                },
             }
-        }
+        },
     }
-    
+
     # Create documentation HTML
     docs_html = f"""
 <!DOCTYPE html>
@@ -317,31 +284,33 @@ def generate_api_docs():
 </body>
 </html>
     """
-    
+
     # Save files
     build_dir = Path("build")
     build_dir.mkdir(exist_ok=True)
-    
+
     # Save OpenAPI spec
     with open(build_dir / "api-spec.json", "w") as f:
         json.dump(api_docs, f, indent=2)
-    
+
     # Save documentation HTML
     with open(build_dir / "api-docs.html", "w") as f:
         f.write(docs_html)
 
+
 def main():
     """Generate API documentation"""
     print("Generating API documentation...")
-    
+
     try:
         generate_api_docs()
         print("✅ Generated API documentation")
         print("🚀 API documentation generation complete!")
-        
+
     except Exception as e:
         print(f"❌ Error generating API documentation: {e}")
         raise
+
 
 if __name__ == "__main__":
     main()

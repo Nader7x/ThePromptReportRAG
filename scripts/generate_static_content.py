@@ -10,34 +10,32 @@ import os
 from pathlib import Path
 from PromptReportKnowledgeBase import export_knowledge_base
 
+
 def generate_knowledge_base_json():
     """Generate knowledge base as JSON for static access"""
     kb = export_knowledge_base()
-    
+
     # Create build directory if it doesn't exist
     build_dir = Path("build")
     build_dir.mkdir(exist_ok=True)
-    
+
     # Save knowledge base as JSON
     with open(build_dir / "knowledge_base.json", "w") as f:
         json.dump(kb, f, indent=2, default=str)
-    
+
     # Create techniques list
-    techniques_list = {
-        "techniques": list(kb.keys()),
-        "total_count": len(kb),
-        "categories": {}
-    }
-    
+    techniques_list = {"techniques": list(kb.keys()), "total_count": len(kb), "categories": {}}
+
     # Categorize techniques (if category info available)
     for name, details in kb.items():
         category = details.get("category", "General")
         if category not in techniques_list["categories"]:
             techniques_list["categories"][category] = []
         techniques_list["categories"][category].append(name)
-    
+
     with open(build_dir / "techniques.json", "w") as f:
         json.dump(techniques_list, f, indent=2)
+
 
 def generate_api_manifest():
     """Generate API manifest for static deployment"""
@@ -50,25 +48,22 @@ def generate_api_manifest():
             "/api/enhance-prompt": "Enhance user prompts",
             "/api/search": "Search knowledge base",
             "/api/techniques": "List all techniques",
-            "/api/techniques/{name}": "Get technique details"
+            "/api/techniques/{name}": "Get technique details",
         },
         "features": [
             "Gemini API integration",
             "FAISS vector search",
             "Hybrid search (vector + keyword)",
             "Advanced document chunking",
-            "TinyLlama enhancement"
+            "TinyLlama enhancement",
         ],
-        "deployment": {
-            "type": "static",
-            "platform": "GitHub Pages",
-            "build_date": "2025-06-25"
-        }
+        "deployment": {"type": "static", "platform": "GitHub Pages", "build_date": "2025-06-25"},
     }
-    
+
     build_dir = Path("build")
     with open(build_dir / "manifest.json", "w") as f:
         json.dump(manifest, f, indent=2)
+
 
 def create_static_demo():
     """Create a static demo page"""
@@ -270,30 +265,32 @@ streamlit run streamlit_app.py
 </body>
 </html>
     """
-    
+
     build_dir = Path("build")
     with open(build_dir / "demo.html", "w") as f:
         f.write(demo_html)
 
+
 def main():
     """Generate all static content"""
     print("Generating static content for GitHub Pages...")
-    
+
     try:
         generate_knowledge_base_json()
         print("✅ Generated knowledge base JSON")
-        
+
         generate_api_manifest()
         print("✅ Generated API manifest")
-        
+
         create_static_demo()
         print("✅ Created static demo page")
-        
+
         print("🚀 Static content generation complete!")
-        
+
     except Exception as e:
         print(f"❌ Error generating static content: {e}")
         raise
+
 
 if __name__ == "__main__":
     main()

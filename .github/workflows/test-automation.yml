@@ -67,10 +67,10 @@ jobs:
           echo "## 📋 Linting Results (flake8)" >> reports/qa_report.md
           echo "" >> reports/qa_report.md
           echo "```" >> reports/qa_report.md
-          if flake8 --max-line-length=100 --ignore=E203,W503 --exclude=__pycache__,*.pyc --statistics *.py; then
-            echo "✅ No linting issues found" >> reports/qa_report.md
+          if flake8 *.py; then
+            echo "✅ No critical linting issues found" >> reports/qa_report.md
           else
-            echo "⚠️ Linting issues detected" >> reports/qa_report.md
+            echo "⚠️ Linting issues detected (non-critical, not failing CI)" >> reports/qa_report.md
           fi
           echo "```" >> reports/qa_report.md
           echo "" >> reports/qa_report.md

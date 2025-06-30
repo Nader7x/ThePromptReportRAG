@@ -25,24 +25,28 @@
 Enhanced RAG combines **Gemini AI**, **FAISS vector search**, and **"The Prompt Report"** knowledge to automatically categorize, search, and enhance your prompts with proven techniques.
 
 **Key Benefits:**
+
 - 🎯 **95% faster** prompt technique discovery
 - 🧠 **AI-powered** categorization with Gemini
-- 🔍 **Hybrid search** (vector + keyword) 
+- 🔍 **Hybrid search** (vector + keyword)
 - ✨ **Local enhancement** with TinyLlama/Ollama
 - 🔒 **Privacy-first** design
 
 ## 🚀 Quick Start
 
 ### Option 1: Try Live Demo (0 setup)
+
 Visit [prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app) - No installation needed!
 
 ### Option 2: Docker (2 minutes)
+
 ```bash
 docker run -p 8501:8501 -e GEMINI_API_KEY="your-key" \
   ghcr.io/nader7x/thepromptreportrag:latest
 ```
 
 ### Option 3: Local Development (5 minutes)
+
 ```bash
 # Clone and setup
 git clone https://github.com/Nader7x/ThePromptReportRAG.git
@@ -61,22 +65,26 @@ python api.py
 ## 🎯 Core Features
 
 ### 🧠 AI-Powered Categorization
+
 - Gemini API analyzes prompts and identifies techniques
 - Maps to "The Prompt Report" taxonomy (70+ techniques)
 - Real-time analysis with 95%+ accuracy
 
 ### 🔍 Advanced Search
+
 - **Hybrid**: Combines FAISS vector + BM25 keyword search
 - **Vector**: Semantic similarity matching
 - **Keyword**: Traditional text search
 - Sub-second response times
 
 ### ✨ Smart Enhancement
+
 - TinyLlama integration via Ollama (local/private)
 - Context-aware improvements
 - Based on identified techniques
 
 ### 🌐 Multiple Interfaces
+
 - **Streamlit**: Beautiful web interface
 - **FastAPI**: REST API with auto-docs
 - **Static HTML**: GitHub Pages compatible
@@ -84,6 +92,7 @@ python api.py
 ## 📖 API Usage
 
 ### Python Example
+
 ```python
 import requests
 
@@ -103,20 +112,22 @@ response = requests.post("http://localhost:8000/api/search", json={
 ```
 
 ### JavaScript Example
+
 ```javascript
 // Enhance prompt
-const response = await fetch('/api/enhance-prompt', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-        prompt: 'Create a marketing headline',
-        use_local_enhancement: true
-    })
+const response = await fetch("/api/enhance-prompt", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    prompt: "Create a marketing headline",
+    use_local_enhancement: true,
+  }),
 });
 const result = await response.json();
 ```
 
 ### cURL Example
+
 ```bash
 # Health check
 curl http://localhost:8000/api/health
@@ -130,14 +141,16 @@ curl -X POST http://localhost:8000/api/enhance-prompt \
 ## 🚀 Deployment Options
 
 ### Streamlit Cloud (Recommended)
+
 1. Fork this repository
 2. Connect to [share.streamlit.io](https://share.streamlit.io)
 3. Add `GEMINI_API_KEY` in secrets
 4. Deploy!
 
 ### Docker Compose
+
 ```yaml
-version: '3.8'
+version: "3.8"
 services:
   enhanced-rag:
     image: ghcr.io/nader7x/thepromptreportrag:latest
@@ -150,11 +163,11 @@ services:
 
 ## ⚡ Performance
 
-| Component | Speed | Accuracy |
-|-----------|-------|----------|
-| Vector Search | ~10ms | 95%+ |
-| AI Categorization | ~3s | 95%+ |
-| Local Enhancement | ~5s | High |
+| Component          | Speed   | Accuracy |
+| ------------------ | ------- | -------- |
+| Vector Search      | ~10ms   | 95%+     |
+| AI Categorization  | ~3s     | 95%+     |
+| Local Enhancement  | ~5s     | High     |
 | **Total Pipeline** | **~8s** | **95%+** |
 
 ## 🔧 Configuration
@@ -177,6 +190,38 @@ rag = create_advanced_rag(
 - ✅ **API key security** via environment variables
 - ✅ **CORS protection** for production
 - ✅ **Input validation** and rate limiting
+
+## 🛠️ Development
+
+### Code Quality & Formatting
+
+The project uses modern Python tooling with flexible linting:
+
+```bash
+# Auto-format code (recommended)
+python scripts/format_code.py
+
+# Manual formatting
+black --line-length=120 *.py
+isort *.py
+flake8 *.py  # Uses .flake8 config for flexibility
+```
+
+### Configuration Files
+
+- **`.flake8`** - Flexible linting rules (warnings, not errors)
+- **`pyproject.toml`** - Modern Python project configuration
+- **CI/CD** - Non-blocking quality checks for developer productivity
+
+### Testing
+
+```bash
+# Run test suite
+pytest tests/ -v
+
+# With coverage
+pytest tests/ --cov=. --cov-report=html
+```
 
 ## 🤝 Contributing
 
@@ -211,4 +256,3 @@ MIT License - see [LICENSE](LICENSE) file for details.
 - **Live App**: [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app)
 - **Status**: Offline
 - **Last Updated**: 2025-06-30 21:25:46 UTC
-

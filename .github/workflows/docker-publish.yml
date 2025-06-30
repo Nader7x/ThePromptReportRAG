@@ -67,6 +67,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: 🏗️ Build local test image
+        if: github.event_name != 'pull_request'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          tags: test-image:latest
+          load: true # Load image into local registry for testing
+          cache-from: type=gha
+
       - name: 🏗️ Build and push Production image
         uses: docker/build-push-action@v5
         with:
@@ -87,12 +98,12 @@ jobs:
           # Test the built image
           echo "🧪 Testing Docker image..."
 
-          # Get the latest built image
-          IMAGE_TAG="${{ env.REGISTRY }}/${{ steps.image-name.outputs.IMAGE_NAME }}:latest"
+          # Use the local test image
+          IMAGE_TAG="test-image:latest"
 
           # Verify image exists
           echo "🔍 Checking if image exists..."
-          if ! docker images | grep -q "$(echo $IMAGE_TAG | cut -d: -f1)"; then
+          if ! docker images | grep -q "test-image"; then
             echo "❌ Image not found in local registry"
             echo "📋 Available images:"
             docker images
