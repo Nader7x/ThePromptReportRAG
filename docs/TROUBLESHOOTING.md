@@ -143,6 +143,50 @@ Add this debug step to any workflow to check token permissions:
       | jq '.permissions'
 ```
 
+## 🐛 Issue 3: GitHub Actions Permissions Error
+
+### Problem
+
+```
+remote: Permission to Nader7x/ThePromptReportRAG.git denied to github-actions[bot].
+fatal: unable to access 'https://github.com/...': The requested URL returned error: 403
+```
+
+### Root Cause
+
+GitHub Actions workflows that try to commit changes back to the repository (using actions like `stefanzweifel/git-auto-commit-action`) need explicit write permissions to the repository contents.
+
+### ✅ Solution Applied
+
+Added `permissions: contents: write` to all workflows that commit changes:
+
+```yaml
+name: 📊 Deployment Status & Analytics
+
+on:
+  # ...existing triggers...
+
+permissions:
+  contents: write # This allows the workflow to commit changes
+
+env:
+  # ...existing environment variables...
+```
+
+#### Workflows Fixed:
+
+- ✅ `deployment-status.yml` - Updates status files
+- ✅ `streamlit-deploy.yml` - Updates deployment status
+- ✅ `environment-management.yml` - Updates documentation
+- ✅ `release-management.yml` - Updates release documentation
+
+### 📋 Permission Types Explained
+
+- **`contents: read`** - Can read repository files (default for most actions)
+- **`contents: write`** - Can read and write repository files, create commits
+- **`packages: write`** - Can publish to GitHub Packages/Container Registry
+- **`pull-requests: write`** - Can create and modify pull requests
+
 ## 🚀 Workflow Status After Fixes
 
 ### ✅ Fixed Workflows

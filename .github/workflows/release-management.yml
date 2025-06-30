@@ -20,6 +20,9 @@ on:
         required: false
         type: string
 
+permissions:
+  contents: write
+
 env:
   PYTHON_VERSION: "3.11"
   STREAMLIT_APP_URL: "https://prompt-forge-ai.streamlit.app"

@@ -8,6 +8,9 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: write
+
 env:
   STREAMLIT_APP_URL: "https://prompt-forge-ai.streamlit.app"
 

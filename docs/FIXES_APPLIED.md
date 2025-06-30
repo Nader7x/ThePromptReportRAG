@@ -68,6 +68,43 @@ password: ${{ secrets.GITHUB_TOKEN }}
 - Kept CR_PAT for dependency updates (needed for PR creation)
 - Added troubleshooting documentation
 
+### 🐛 Issue 3: GitHub Actions Permissions Error
+
+**Error Message:**
+
+```
+remote: Permission to Nader7x/ThePromptReportRAG.git denied to github-actions[bot].
+fatal: unable to access 'https://github.com/...': The requested URL returned error: 403
+```
+
+**Root Cause:**
+
+- Workflows using `stefanzweifel/git-auto-commit-action` to commit changes back to the repository
+- GitHub Actions requires explicit `contents: write` permission to modify repository files
+- Default permissions only allow reading repository contents
+
+**✅ Fixes Applied:**
+
+#### Added `contents: write` permissions to all workflows that commit changes:
+
+```yaml
+permissions:
+  contents: write
+```
+
+**Workflows Fixed:**
+
+- ✅ `deployment-status.yml` - Updates deployment status files
+- ✅ `streamlit-deploy.yml` - Updates deployment documentation
+- ✅ `environment-management.yml` - Updates environment documentation
+- ✅ `release-management.yml` - Updates release documentation
+
+**Benefits:**
+
+- ✅ Workflows can now commit automated updates
+- ✅ Status files and documentation stay current
+- ✅ No manual intervention required for routine updates
+
 ## 🔧 CR_PAT Configuration Requirements
 
 Since your dependency update workflow still needs CR_PAT for creating pull requests, ensure your token has these permissions:

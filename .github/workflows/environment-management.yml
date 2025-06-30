@@ -16,6 +16,9 @@ on:
     # Run weekly security audit
     - cron: "0 6 * * 1"
 
+permissions:
+  contents: write
+
 env:
   PYTHON_VERSION: "3.11"
 
