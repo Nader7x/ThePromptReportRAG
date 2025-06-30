@@ -33,7 +33,8 @@ def test_rag_config():
     
     config = RAGConfig(gemini_api_key="test_key")
     assert config.gemini_api_key == "test_key"
-    assert config.ollama_base_url == "http://localhost:11434"
+    assert config.embedding_model == "sentence-transformers/all-MiniLM-L6-v2"
+    assert config.debug == False
 
 def test_advanced_rag_import():
     """Test advanced RAG imports"""

@@ -38,7 +38,11 @@ jobs:
           pip install -r requirements.txt
           pip install -r requirements-dev.txt
 
-      - name: 🔍 Code quality checks
+      - name: � Download NLTK data
+        run: |
+          python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords'); nltk.download('wordnet')"
+
+      - name: �🔍 Code quality checks
         run: |
           # Install code quality tools
           pip install flake8 black isort

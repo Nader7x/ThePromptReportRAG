@@ -16,11 +16,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Ensure NLTK is available and download required data
 RUN python -c "import nltk; nltk.download('punkt', quiet=True); nltk.download('stopwords', quiet=True)"
 
-# Copy application code
+# Copy application code and ensure all necessary files are included
 COPY . .
 
-# Create necessary directories
-RUN mkdir -p static logs
+# Ensure knowledge base vectors are present
+RUN ls -la knowledge_base_vectors/ || echo "⚠️ Knowledge base vectors not found"
+
+# Create necessary directories with proper permissions
+RUN mkdir -p static logs knowledge_base_vectors && \
+    chmod -R 755 static logs knowledge_base_vectors
 
 # Expose ports for FastAPI and Streamlit
 EXPOSE 8000 8501

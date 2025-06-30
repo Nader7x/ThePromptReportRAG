@@ -167,7 +167,7 @@ def create_static_demo():
                 </div>
                 <div class="feature-card">
                     <h3>✨ AI Enhancement</h3>
-                    <p>TinyLlama via Ollama enhances your prompts with proven techniques from research.</p>
+                    <p>Google Gemini API enhances your prompts with proven techniques from research using advanced AI.</p>
                 </div>
                 <div class="feature-card">
                     <h3>📚 Knowledge Base</h3>
@@ -189,8 +189,7 @@ User Prompt → Gemini API → FAISS Vector DB → TinyLlama → Enhanced Prompt
                 <li><strong>Streamlit:</strong> Interactive web interface</li>
                 <li><strong>FAISS:</strong> Facebook's vector similarity search</li>
                 <li><strong>Sentence Transformers:</strong> State-of-the-art embeddings</li>
-                <li><strong>Gemini API:</strong> Google's advanced language model</li>
-                <li><strong>Ollama + TinyLlama:</strong> Local AI enhancement</li>
+                <li><strong>Gemini API:</strong> Google's advanced language model for categorization and enhancement</li>
                 <li><strong>GitHub Actions:</strong> CI/CD and deployment</li>
             </ul>
         </div>

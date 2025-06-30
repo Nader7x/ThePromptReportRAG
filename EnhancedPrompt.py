@@ -552,12 +552,6 @@ class ImplementationOptions:
             "cons": ["Requires API key", "Network dependency", "API costs"],
             "dependencies": ["google-generativeai"],
         },
-        "local_llm": {
-            "description": "Use local LLM (via Ollama) for categorization",
-            "pros": ["No API costs", "Privacy", "Offline capability"],
-            "cons": ["Lower accuracy", "Resource intensive", "Setup complexity"],
-            "dependencies": ["ollama"],
-        },
         "classifier_model": {
             "description": "Fine-tuned classification model",
             "pros": ["Fast", "Deterministic", "Low resource"],
@@ -593,12 +587,6 @@ class ImplementationOptions:
             "pros": ["High quality", "Advanced reasoning", "Consistent results", "No local setup required"],
             "cons": ["API costs", "Network dependency", "Rate limits"],
             "dependencies": ["google-generativeai"],
-        },
-        "ollama_local": {
-            "description": "TinyLlama via Ollama (DEPRECATED)",
-            "pros": ["Local", "Privacy", "Free", "No API dependency"],
-            "cons": ["Requires Ollama setup", "Limited model capabilities", "Lower quality"],
-            "dependencies": ["ollama (external)"],
         },
         "openai_api": {
             "description": "OpenAI GPT models",
@@ -697,7 +685,7 @@ if __name__ == "__main__":
         print("   • Migrated from local Ollama TinyLlama to Gemini API")
         print("   • Better prompt enhancement quality and consistency")
         print("   • Simplified deployment (no local LLM required)")
-        print("   • Unified API approach for both categorization and enhancement")
+        print("   • Unified Gemini API approach for all AI operations")
         print()
 
         print("📦 Required Dependencies:")
@@ -705,7 +693,7 @@ if __name__ == "__main__":
         print("   • faiss-cpu (Vector database)")
         print("   • sentence-transformers (Embeddings)")
         print("   • numpy (Numerical operations)")
-        print("   Note: No longer requires Ollama or requests for LLM calls")
+        print("   Note: Fully powered by Gemini API - no local LLM setup required")
         print()
 
         print("🚀 Setup Instructions:")

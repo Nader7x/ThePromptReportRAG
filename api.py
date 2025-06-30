@@ -8,6 +8,7 @@ This module provides REST API endpoints for the RAG application.
 import logging
 import os
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import uvicorn
@@ -97,58 +98,148 @@ async def startup_event():
     global production_rag, advanced_rag_processor
 
     try:
+        logger.info("=== Starting Enhanced RAG Application ===")
+        
         # Get API key from environment
         gemini_api_key = os.getenv("GEMINI_API_KEY", "AIzaSyAWvHgMe_CpVbJI1yZ3Os9pwRV05tRztb8")
+        
+        # Validate API key
+        if not gemini_api_key or gemini_api_key in ["test-key-placeholder", ""]:
+            logger.warning("⚠️ No valid GEMINI_API_KEY found - some features may not work")
+        else:
+            logger.info("✅ GEMINI_API_KEY configured")
 
-        # Initialize production RAG
-        logger.info("Initializing production RAG...")
-        production_rag = create_production_rag(gemini_api_key)
+        # Check if knowledge base vectors exist
+        vector_path = Path("knowledge_base_vectors")
+        if vector_path.exists():
+            logger.info(f"✅ Knowledge base vectors found at {vector_path}")
+            for file in vector_path.iterdir():
+                logger.info(f"  - {file.name} ({file.stat().st_size} bytes)")
+        else:
+            logger.warning(f"⚠️ Knowledge base vectors not found at {vector_path}")
 
-        # Initialize advanced RAG processor
-        logger.info("Initializing advanced RAG processor...")
-        advanced_rag_processor = create_advanced_rag()
+        # Initialize production RAG with error handling
+        logger.info("🚀 Initializing production RAG...")
+        try:
+            production_rag = create_production_rag(gemini_api_key)
+            logger.info("✅ Production RAG initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize production RAG: {e}")
+            logger.error(f"Error details: {type(e).__name__}: {str(e)}")
+            # Don't fail startup completely, allow partial functionality
+            production_rag = None
 
-        # Process knowledge base documents
-        knowledge_base = export_knowledge_base()
-        documents = {}
+        # Initialize advanced RAG processor with error handling
+        logger.info("🚀 Initializing advanced RAG processor...")
+        try:
+            advanced_rag_processor = create_advanced_rag()
+            logger.info("✅ Advanced RAG processor initialized successfully")
+        except Exception as e:
+            logger.error(f"❌ Failed to initialize advanced RAG processor: {e}")
+            logger.error(f"Error details: {type(e).__name__}: {str(e)}")
+            # Don't fail startup completely
+            advanced_rag_processor = None
 
-        # Process text-based techniques
-        for technique in knowledge_base.get("text_based_techniques", []):
-            technique_name = technique.get("technique_name", "Unknown")
-            doc_content = f"{technique.get('definition', '')} {technique.get('description', '')} {' '.join(technique.get('examples', []))}"
-            documents[technique_name] = doc_content
+        # Process knowledge base documents if advanced RAG is available
+        if advanced_rag_processor:
+            logger.info("📚 Processing knowledge base documents...")
+            try:
+                knowledge_base = export_knowledge_base()
+                documents = {}
 
-        # Process other technique types as well
-        for pe_technique in knowledge_base.get("prompt_engineering_techniques", []):
-            technique_name = pe_technique.get("technique_name", "Unknown")
-            doc_content = f"{pe_technique.get('definition', '')} {pe_technique.get('description', '')} {' '.join(pe_technique.get('examples', []))}"
-            documents[technique_name] = doc_content
+                # Process text-based techniques
+                for technique in knowledge_base.get("text_based_techniques", []):
+                    technique_name = technique.get("technique_name", "Unknown")
+                    doc_content = f"{technique.get('definition', '')} {technique.get('description', '')} {' '.join(technique.get('examples', []))}"
+                    documents[technique_name] = doc_content
 
-        advanced_rag_processor.process_documents(documents)
+                # Process other technique types as well
+                for pe_technique in knowledge_base.get("prompt_engineering_techniques", []):
+                    technique_name = pe_technique.get("technique_name", "Unknown")
+                    doc_content = f"{pe_technique.get('definition', '')} {pe_technique.get('description', '')} {' '.join(pe_technique.get('examples', []))}"
+                    documents[technique_name] = doc_content
 
-        logger.info("RAG components initialized successfully")
+                if documents:
+                    advanced_rag_processor.process_documents(documents)
+                    logger.info(f"✅ Processed {len(documents)} knowledge base documents")
+                else:
+                    logger.warning("⚠️ No documents found in knowledge base")
+                    
+            except Exception as e:
+                logger.error(f"❌ Failed to process knowledge base documents: {e}")
+                logger.error(f"Error details: {type(e).__name__}: {str(e)}")
+
+        logger.info("=== RAG Application Startup Complete ===")
+        
+        # Log final status
+        status_summary = []
+        if production_rag:
+            status_summary.append("✅ Production RAG: Ready")
+        else:
+            status_summary.append("❌ Production RAG: Failed")
+            
+        if advanced_rag_processor:
+            status_summary.append("✅ Advanced RAG: Ready")
+        else:
+            status_summary.append("❌ Advanced RAG: Failed")
+            
+        logger.info("📊 Startup Summary:")
+        for status in status_summary:
+            logger.info(f"  {status}")
 
     except Exception as e:
-        logger.error(f"Failed to initialize RAG components: {e}")
-        raise
+        logger.error(f"💥 Critical startup error: {e}")
+        logger.error(f"Error details: {type(e).__name__}: {str(e)}")
+        # In production, you might want to raise this to prevent the app from starting
+        # raise  # Uncomment to fail fast on startup errors
 
 
 # Health check endpoint
 @app.get("/api/health", response_model=HealthResponse)
 async def health_check():
-    """Health check endpoint"""
-    services = {
-        "rag": "healthy" if production_rag else "unhealthy",
-        "advanced_rag": "healthy" if advanced_rag_processor else "unhealthy",
-        "gemini_api": "configured" if os.getenv("GEMINI_API_KEY") else "not_configured",
-        "ollama": "unknown",  # Could add actual Ollama health check
-    }
+    """Health check endpoint with detailed diagnostic information"""
+    try:
+        # Check core services
+        services = {
+            "rag": "healthy" if production_rag else "unhealthy",
+            "advanced_rag": "healthy" if advanced_rag_processor else "unhealthy",
+            "gemini_api": "configured" if os.getenv("GEMINI_API_KEY") else "not_configured",
+        }
+        
+        # Check filesystem
+        vector_path = Path("knowledge_base_vectors")
+        services["vector_store"] = "available" if vector_path.exists() else "missing"
+        
+        # Check if we can import key dependencies
+        try:
+            import sentence_transformers
+            import faiss
+            import google.generativeai
+            services["dependencies"] = "available"
+        except ImportError as e:
+            services["dependencies"] = f"missing: {str(e)}"
+        
+        # Determine overall status
+        critical_services = ["rag", "dependencies"]
+        overall_status = "healthy"
+        
+        if any(services.get(service) == "unhealthy" for service in critical_services):
+            overall_status = "unhealthy"
+        elif any(services.get(service, "").startswith("missing") for service in services):
+            overall_status = "degraded"
 
-    return HealthResponse(
-        status="healthy" if all(s != "unhealthy" for s in services.values()) else "degraded",
-        timestamp=datetime.now().isoformat(),
-        services=services,
-    )
+        return HealthResponse(
+            status=overall_status,
+            timestamp=datetime.now().isoformat(),
+            services=services,
+        )
+    except Exception as e:
+        logger.error(f"Health check failed: {e}")
+        return HealthResponse(
+            status="error",
+            timestamp=datetime.now().isoformat(),
+            services={"error": str(e)},
+        )
 
 
 # Main RAG endpoint
