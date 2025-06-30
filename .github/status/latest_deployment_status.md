@@ -3,18 +3,18 @@
 **Generated:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 **Repository:** Nader7x/ThePromptReportRAG
 **Branch:** main
-**Commit:** a993fe3758d5d4089fdeccded91c6075ed02a315
+**Commit:** c1b2850548a462c03a08537c2680979d2d82976e
 
 ## 🌐 Application Status
 
 | Service | Status | Response Time | Details |
 |---------|--------|---------------|---------|
-| Streamlit App | 🔴 Offline | 260ms | [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app) |
+| Streamlit App | 🔴 Offline | 361ms | [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app) |
 
 ## 🔍 Health Metrics
 
 - **HTTP Status Code:** 303
-- **Response Time:** 260ms
+- **Response Time:** 361ms
 - **Streamlit Framework:** ✅ Detected
 - **Last Check:** $(date -u '+%Y-%m-%d %H:%M:%S UTC')
 
@@ -33,4 +33,4 @@
 
 ### Latest Commits
 
-- `a993fe3` fix: Add explicit write permissions to GitHub Actions workflows to resolve permission errors (18 seconds ago)
+- `c1b2850` feat: Add MIT License and update README for Enhanced RAG project (22 seconds ago)
