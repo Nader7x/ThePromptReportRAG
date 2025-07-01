@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Quick test of the enhanced prompt system"""
 
+import os
 from EnhancedPrompt import create_production_rag
 
-GEMINI_API_KEY = "AIzaSyAWvHgMe_CpVbJI1yZ3Os9pwRV05tRztb8"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "your-api-key")
 
 def test_single_prompt():
     print("Testing single prompt...")
