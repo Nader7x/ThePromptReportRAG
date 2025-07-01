@@ -233,6 +233,9 @@ jobs:
     name: 🔒 Security Scan
     needs: build-and-push
     if: github.event_name != 'pull_request'
+    permissions:
+      contents: read
+      security-events: write
 
     steps:
       - name: � Log in to Container Registry
@@ -250,7 +253,7 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: 📊 Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: "trivy-results.sarif"
