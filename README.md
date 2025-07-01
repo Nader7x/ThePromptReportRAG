@@ -2,7 +2,6 @@
 
 ![Latest Release](https://img.shields.io/github/v/release/Nader7x/ThePromptReportRAG)
 
-
 <div align="center">
 
 ![Enhanced RAG](https://img.shields.io/badge/🚀_Enhanced_RAG-AI_Prompt_Engineering-6366f1?style=for-the-badge&logo=openai&logoColor=white)
@@ -14,7 +13,6 @@
 [![🐳 Docker](https://img.shields.io/badge/🐳_Docker-Ready-0ea5e9?style=for-the-badge&logo=docker&logoColor=white)](https://github.com/Nader7x/ThePromptReportRAG/pkgs/container/ThePromptReportRAG)
 
 [![CI/CD](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/ci-cd.yml)
-[![Deploy](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/streamlit-deploy.yml/badge.svg)](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/streamlit-deploy.yml)
 [![Docker](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Nader7x/ThePromptReportRAG/actions/workflows/docker-publish.yml)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-3776ab?style=flat&logo=python&logoColor=white)
