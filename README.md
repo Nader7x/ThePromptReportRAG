@@ -251,7 +251,7 @@ MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🚀 Deployment Status
 
-![App Status](https://img.shields.io/badge/App%20Status-🔴%20Offline-brightgreen)
+![App Status](https://img.shields.io/badge/App%20Status-🟢%20Online-brightgreen)
 
 - **Live App**: [https://prompt-forge-ai.streamlit.app](https://prompt-forge-ai.streamlit.app)
 - **Status**: Offline
