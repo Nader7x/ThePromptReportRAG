@@ -1,5 +1,8 @@
 # 🚀 Enhanced RAG - AI Prompt Engineering Platform
 
+![Latest Release](https://img.shields.io/github/v/release/Nader7x/ThePromptReportRAG)
+
+
 <div align="center">
 
 ![Enhanced RAG](https://img.shields.io/badge/🚀_Enhanced_RAG-AI_Prompt_Engineering-6366f1?style=for-the-badge&logo=openai&logoColor=white)
