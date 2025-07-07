@@ -13,8 +13,8 @@ mypy>=1.16.1
 
 # Development and exploration
 jupyter>=1.1.1
-ipython>=9.3.0
-notebook>=7.4.3
+ipython>=9.4.0
+notebook>=7.4.4
 
 # Visualization for analysis
 matplotlib>=3.10.3

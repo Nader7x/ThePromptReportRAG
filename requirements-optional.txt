@@ -18,7 +18,7 @@ tiktoken>=0.9.0
 
 # Alternative AI/ML integrations (mentioned in configs but not actively used)
 openai>=1.93.0
-transformers>=4.53.0
+transformers>=4.53.1
 langchain>=0.3.26
 
 # Data export/import capabilities (not currently used)
