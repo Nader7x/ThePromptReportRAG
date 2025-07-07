@@ -10,7 +10,7 @@ google-generativeai>=0.8.5
 
 # FAISS vector database and embeddings
 faiss-cpu>=1.11.0
-sentence-transformers>=4.1.0
+sentence-transformers>=5.0.0
 
 # Core data science and utilities
 numpy>=2.3.1
