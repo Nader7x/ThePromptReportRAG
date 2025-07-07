@@ -71,6 +71,24 @@ class KnowledgeRetriever(ABC):
         pass
 
 
+class PromptSafetyChecker(ABC):
+    """Abstract base class for prompt safety checking and sanitization"""
+
+    @abstractmethod
+    def check_and_sanitize_prompt(self, user_prompt: str) -> Dict:
+        """
+        Check if prompt is safe and sanitize if needed
+        
+        Returns:
+            Dict with keys:
+            - is_safe: bool
+            - sanitized_prompt: str (original or sanitized version)
+            - safety_issues: List[str] (list of issues found)
+            - modifications_made: bool
+        """
+        pass
+
+
 class PromptEnhancer(ABC):
     """Abstract base class for prompt enhancement"""
 
@@ -83,8 +101,8 @@ class PromptEnhancer(ABC):
 # Main RAG Application Class
 class EnhancedPromptRAG:
     """
-    Main RAG application that orchestrates the three-step process:
-    1. Categorization -> 2. Retrieval -> 3. Enhancement
+    Main RAG application that orchestrates the four-step process:
+    1. Categorization -> 2. Safety Check -> 3. Retrieval -> 4. Enhancement
     """
 
     def __init__(self, config: RAGConfig):
@@ -93,6 +111,7 @@ class EnhancedPromptRAG:
 
         # Components (will be initialized based on chosen implementations)
         self.categorizer: Optional[PromptCategorizer] = None
+        self.safety_checker: Optional[PromptSafetyChecker] = None
         self.retriever: Optional[KnowledgeRetriever] = None
         self.enhancer: Optional[PromptEnhancer] = None
 
@@ -103,10 +122,12 @@ class EnhancedPromptRAG:
         self.logger = logging.getLogger(__name__)
 
     def initialize_components(
-        self, categorizer: PromptCategorizer, retriever: KnowledgeRetriever, enhancer: PromptEnhancer
+        self, categorizer: PromptCategorizer, safety_checker: PromptSafetyChecker, 
+        retriever: KnowledgeRetriever, enhancer: PromptEnhancer
     ):
         """Initialize the RAG components"""
         self.categorizer = categorizer
+        self.safety_checker = safety_checker
         self.retriever = retriever
         self.enhancer = enhancer
         self.logger.info("RAG components initialized successfully")
@@ -121,7 +142,7 @@ class EnhancedPromptRAG:
         Returns:
             Dict containing the enhanced prompt and metadata
         """
-        if not all([self.categorizer, self.retriever, self.enhancer]):
+        if not all([self.categorizer, self.safety_checker, self.retriever, self.enhancer]):
             raise ValueError("RAG components not properly initialized")
 
         try:
@@ -132,25 +153,50 @@ class EnhancedPromptRAG:
             relevant_technique = self.categorizer.categorize_prompt(user_prompt)
             self.logger.info(f"Identified technique: {relevant_technique}")
 
-            # Step 2: Retrieval
-            self.logger.debug("Step 2: Retrieving knowledge...")
+            # Step 2: Safety Check and Sanitization
+            self.logger.debug("Step 2: Checking prompt safety...")
+            safety_result = self.safety_checker.check_and_sanitize_prompt(user_prompt)
+            
+            if not safety_result["is_safe"]:
+                self.logger.warning(f"Unsafe prompt detected. Issues: {safety_result['safety_issues']}")
+                if safety_result["modifications_made"]:
+                    self.logger.info("Prompt has been sanitized for safety")
+                    prompt_to_enhance = safety_result["sanitized_prompt"]
+                else:
+                    self.logger.error("Could not sanitize unsafe prompt")
+                    return {
+                        "original_prompt": user_prompt,
+                        "enhanced_prompt": user_prompt,
+                        "error": f"Unsafe prompt could not be sanitized: {safety_result['safety_issues']}",
+                        "success": False,
+                    }
+            else:
+                self.logger.info("Prompt passed safety check")
+                prompt_to_enhance = user_prompt
+
+            # Step 3: Retrieval
+            self.logger.debug("Step 3: Retrieving knowledge...")
             technique_info = self.retriever.retrieve_technique_info(relevant_technique)
-            additional_context = self.retriever.search_knowledge(user_prompt)
+            additional_context = self.retriever.search_knowledge(prompt_to_enhance)
 
             context = {
                 "technique": technique_info,
                 "additional_context": additional_context,
                 "original_prompt": user_prompt,
+                "sanitized_prompt": prompt_to_enhance,
+                "safety_result": safety_result,
             }
 
-            # Step 3: Enhancement
-            self.logger.debug("Step 3: Enhancing prompt...")
-            enhanced_prompt = self.enhancer.enhance_prompt(user_prompt, context)
+            # Step 4: Enhancement
+            self.logger.debug("Step 4: Enhancing prompt...")
+            enhanced_prompt = self.enhancer.enhance_prompt(prompt_to_enhance, context)
 
             result = {
                 "original_prompt": user_prompt,
+                "sanitized_prompt": prompt_to_enhance,
                 "identified_technique": relevant_technique,
                 "enhanced_prompt": enhanced_prompt,
+                "safety_result": safety_result,
                 "context_used": context,
                 "success": True,
             }
@@ -231,6 +277,227 @@ Response Format: Return only the technique name, nothing else.
             if partial_name.lower() in technique.technique_name.lower():
                 return technique.technique_name
         return "Zero-Shot Prompting"  # Ultimate fallback
+
+
+class GeminiSafetyChecker(PromptSafetyChecker):
+    """Production safety checker using Gemini API"""
+
+    def __init__(self, api_key: str):
+        genai.configure(api_key=api_key)
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        self.logger = logging.getLogger(__name__)
+        self.logger.info("Gemini safety checker initialized successfully")
+
+    def check_and_sanitize_prompt(self, user_prompt: str) -> Dict:
+        """Check if prompt is safe and sanitize if needed using Gemini"""
+        
+        # First, do a quick safety assessment
+        safety_check_prompt = f"""
+You are a content safety analyst. Analyze the following user prompt for any potential safety issues.
+
+User Prompt: "{user_prompt}"
+
+Check for:
+1. Harmful, toxic, or inappropriate content
+2. Requests for illegal activities
+3. Hate speech or harassment
+4. Violence or dangerous content
+5. Explicit sexual content
+6. Privacy violations
+7. Misinformation requests
+
+Respond in this exact format:
+SAFE: [YES/NO]
+ISSUES: [list any issues found, separated by commas, or "none"]
+SEVERITY: [LOW/MEDIUM/HIGH or "none"]
+
+If the prompt has issues but can be made safe, suggest how to sanitize it while preserving the core intent.
+"""
+
+        try:
+            self.logger.debug("Checking prompt safety with Gemini...")
+            
+            # Call Gemini for safety assessment
+            response = self.model.generate_content(
+                safety_check_prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.1, top_p=0.8, max_output_tokens=300
+                ),
+                safety_settings=[
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                ],
+            )
+
+            # Parse Gemini's safety assessment
+            safety_analysis = self._parse_safety_response(response.text)
+            
+            if safety_analysis["is_safe"]:
+                self.logger.info("Prompt passed safety check")
+                return {
+                    "is_safe": True,
+                    "sanitized_prompt": user_prompt,
+                    "safety_issues": [],
+                    "modifications_made": False,
+                    "analysis": safety_analysis
+                }
+            else:
+                # Attempt to sanitize the prompt
+                self.logger.warning(f"Unsafe prompt detected: {safety_analysis['issues']}")
+                sanitized_result = self._sanitize_prompt(user_prompt, safety_analysis)
+                return sanitized_result
+
+        except Exception as e:
+            self.logger.error(f"Safety check failed: {e}")
+            # Conservative fallback - assume safe for innocent-looking prompts
+            if len(user_prompt) < 500 and not any(word in user_prompt.lower() for word in 
+                ['hack', 'attack', 'violence', 'kill', 'bomb', 'weapon', 'drug', 'illegal']):
+                self.logger.info("Safety check failed, but prompt appears innocent - allowing")
+                return {
+                    "is_safe": True,
+                    "sanitized_prompt": user_prompt,
+                    "safety_issues": ["safety_check_failed"],
+                    "modifications_made": False,
+                    "analysis": {"error": str(e)}
+                }
+            else:
+                self.logger.warning("Safety check failed and prompt may be risky - blocking")
+                return {
+                    "is_safe": False,
+                    "sanitized_prompt": user_prompt,
+                    "safety_issues": ["safety_check_failed", "potentially_risky"],
+                    "modifications_made": False,
+                    "analysis": {"error": str(e)}
+                }
+
+    def _parse_safety_response(self, response_text: str) -> Dict:
+        """Parse Gemini's safety assessment response"""
+        try:
+            lines = response_text.strip().split('\n')
+            is_safe = False
+            issues = []
+            severity = "none"
+            
+            for line in lines:
+                line = line.strip()
+                if line.startswith("SAFE:"):
+                    is_safe = "YES" in line.upper()
+                elif line.startswith("ISSUES:"):
+                    issues_text = line.split(":", 1)[1].strip()
+                    if issues_text.lower() != "none":
+                        issues = [issue.strip() for issue in issues_text.split(",")]
+                elif line.startswith("SEVERITY:"):
+                    severity = line.split(":", 1)[1].strip().lower()
+            
+            return {
+                "is_safe": is_safe,
+                "issues": issues,
+                "severity": severity,
+                "raw_response": response_text
+            }
+            
+        except Exception as e:
+            self.logger.error(f"Failed to parse safety response: {e}")
+            return {
+                "is_safe": False,
+                "issues": ["parse_error"],
+                "severity": "unknown",
+                "raw_response": response_text
+            }
+
+    def _sanitize_prompt(self, user_prompt: str, safety_analysis: Dict) -> Dict:
+        """Attempt to sanitize an unsafe prompt while preserving intent"""
+        
+        sanitization_prompt = f"""
+You are a content moderator. The following prompt has been flagged for safety issues.
+
+Original Prompt: "{user_prompt}"
+Safety Issues: {safety_analysis['issues']}
+Severity: {safety_analysis['severity']}
+
+Please rewrite this prompt to make it safe while preserving the user's core legitimate intent. 
+
+Guidelines:
+1. Remove any harmful, toxic, or inappropriate elements
+2. Keep the constructive educational or creative intent
+3. Make it suitable for general audiences
+4. If the prompt cannot be made safe, respond with "CANNOT_SANITIZE"
+
+Sanitized Prompt:
+"""
+
+        try:
+            self.logger.debug("Attempting to sanitize unsafe prompt...")
+            
+            response = self.model.generate_content(
+                sanitization_prompt,
+                generation_config=genai.types.GenerationConfig(
+                    temperature=0.3, top_p=0.8, max_output_tokens=300
+                ),
+                safety_settings=[
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HARASSMENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                    {
+                        "category": HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                        "threshold": HarmBlockThreshold.BLOCK_NONE,
+                    },
+                ],
+            )
+
+            sanitized_prompt = response.text.strip()
+            
+            if "CANNOT_SANITIZE" in sanitized_prompt:
+                self.logger.warning("Prompt cannot be sanitized safely")
+                return {
+                    "is_safe": False,
+                    "sanitized_prompt": user_prompt,
+                    "safety_issues": safety_analysis['issues'],
+                    "modifications_made": False,
+                    "analysis": safety_analysis
+                }
+            else:
+                self.logger.info("Successfully sanitized unsafe prompt")
+                return {
+                    "is_safe": True,
+                    "sanitized_prompt": sanitized_prompt,
+                    "safety_issues": safety_analysis['issues'],
+                    "modifications_made": True,
+                    "analysis": safety_analysis
+                }
+
+        except Exception as e:
+            self.logger.error(f"Sanitization failed: {e}")
+            return {
+                "is_safe": False,
+                "sanitized_prompt": user_prompt,
+                "safety_issues": safety_analysis['issues'] + ["sanitization_failed"],
+                "modifications_made": False,
+                "analysis": safety_analysis
+            }
 
 
 class FAISSRetriever(KnowledgeRetriever):
@@ -449,18 +716,43 @@ Improved Request:
                 ],
             )
 
-            # Check if response was blocked by safety filters
-            if hasattr(response, "candidates") and response.candidates:
-                candidate = response.candidates[0]
-                if hasattr(candidate, "finish_reason"):
-                    finish_reason = str(candidate.finish_reason)
-                    if "SAFETY" in finish_reason:
-                        self.logger.warning(f"Response blocked by safety filter: {finish_reason}")
-                        if hasattr(candidate, "safety_ratings"):
-                            self.logger.warning(f"Safety ratings: {candidate.safety_ratings}")
-                        return self._fallback_enhancement(original_prompt, technique_info)
+            # Comprehensive safety filter and response validation
+            if not response or not hasattr(response, "candidates") or not response.candidates:
+                self.logger.warning("Gemini returned no candidates, using fallback")
+                return self._fallback_enhancement(original_prompt, technique_info)
 
-            enhanced_prompt = response.text.strip()
+            candidate = response.candidates[0]
+            
+            # Check finish reason first (this is where the error was happening)
+            if hasattr(candidate, "finish_reason"):
+                finish_reason = candidate.finish_reason
+                finish_reason_str = str(finish_reason)
+                
+                # Handle different finish reasons
+                if finish_reason_str in ["2", "SAFETY"]:  # Safety block
+                    self.logger.warning(f"Response blocked by safety filter: {finish_reason_str}")
+                    if hasattr(candidate, "safety_ratings"):
+                        self.logger.warning(f"Safety ratings: {candidate.safety_ratings}")
+                    self.logger.info(f"Original prompt that triggered safety filter: '{original_prompt}'")
+                    return self._fallback_enhancement(original_prompt, technique_info)
+                elif finish_reason_str in ["3", "RECITATION"]:  # Recitation block
+                    self.logger.warning(f"Response blocked due to recitation: {finish_reason_str}")
+                    return self._fallback_enhancement(original_prompt, technique_info)
+                elif finish_reason_str in ["4", "OTHER"]:  # Other issues
+                    self.logger.warning(f"Response blocked for other reasons: {finish_reason_str}")
+                    return self._fallback_enhancement(original_prompt, technique_info)
+
+            # Check if we have valid content before accessing response.text
+            if not hasattr(candidate, "content") or not candidate.content:
+                self.logger.warning("Gemini candidate has no content, using fallback")
+                return self._fallback_enhancement(original_prompt, technique_info)
+
+            # Safely access the text content
+            try:
+                enhanced_prompt = response.text.strip()
+            except (AttributeError, ValueError) as text_error:
+                self.logger.warning(f"Could not access response.text: {text_error}")
+                return self._fallback_enhancement(original_prompt, technique_info)
 
             # Basic validation that we got a meaningful response
             if enhanced_prompt and len(enhanced_prompt) > 10:
@@ -517,7 +809,7 @@ Improved Request:
 
 # Factory function for production setup
 def create_production_rag(gemini_api_key: str) -> EnhancedPromptRAG:
-    """Create a production-ready RAG system using Gemini for both categorization and enhancement"""
+    """Create a production-ready RAG system using Gemini for categorization, safety, and enhancement"""
 
     # Create configuration
     config = RAGConfig(
@@ -529,12 +821,13 @@ def create_production_rag(gemini_api_key: str) -> EnhancedPromptRAG:
 
     # Initialize components - now all using Gemini
     categorizer = GeminiCategorizer(gemini_api_key)
+    safety_checker = GeminiSafetyChecker(gemini_api_key)  # New safety checker
     retriever = FAISSRetriever(config)
     enhancer = GeminiEnhancer(gemini_api_key)  # Using Gemini for enhancement
 
     # Create and initialize RAG system
     rag = EnhancedPromptRAG(config)
-    rag.initialize_components(categorizer, retriever, enhancer)
+    rag.initialize_components(categorizer, safety_checker, retriever, enhancer)
 
     return rag
 
@@ -677,12 +970,14 @@ if __name__ == "__main__":
 
         print("✅ CURRENT PRODUCTION SETUP:")
         print("   • Categorizer: Gemini API (High accuracy)")
+        print("   • Safety Checker: Gemini API (Content safety & sanitization)")
         print("   • Retriever: FAISS Vector Database (Best performance)")
         print("   • Enhancer: Gemini API (High quality, consistent)")
         print()
 
         print("🔄 MIGRATION COMPLETED:")
         print("   • Migrated from local Ollama TinyLlama to Gemini API")
+        print("   • Added intelligent safety checking and sanitization")
         print("   • Better prompt enhancement quality and consistency")
         print("   • Simplified deployment (no local LLM required)")
         print("   • Unified Gemini API approach for all AI operations")
@@ -703,6 +998,8 @@ if __name__ == "__main__":
         print()
 
         print("🔧 Enhanced Features:")
+        print("   • 4-step RAG pipeline: Categorization → Safety → Retrieval → Enhancement")
+        print("   • Intelligent content safety checking and sanitization")
         print("   • FAISS vector search with semantic similarity")
         print("   • Automatic vector store creation and persistence")
         print("   • Gemini-powered intelligent categorization")
