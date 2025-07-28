@@ -17,9 +17,9 @@ spacy>=3.8.7
 tiktoken>=0.9.0
 
 # Alternative AI/ML integrations (mentioned in configs but not actively used)
-openai>=1.93.0
-transformers>=4.53.1
-langchain>=0.3.26
+openai>=1.97.1
+transformers>=4.54.0
+langchain>=0.3.27
 
 # Data export/import capabilities (not currently used)
 openpyxl>=3.1.5
@@ -27,7 +27,7 @@ xlsxwriter>=3.2.5
 
 # Web scraping (not currently used)
 beautifulsoup4>=4.13.4
-selenium>=4.34.0
+selenium>=4.34.2
 
 # PDF processing (not currently used)
 PyPDF2>=3.0.1
