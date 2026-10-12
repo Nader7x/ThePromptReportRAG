@@ -9,29 +9,29 @@
 google-generativeai>=0.8.5
 
 # FAISS vector database and embeddings
-faiss-cpu>=1.11.0
+faiss-cpu>=1.11.0.post1
 sentence-transformers>=5.0.0
 
 # Core data science and utilities
-numpy>=2.3.1
+numpy>=2.3.2
 requests>=2.32.4
 
 # Web Interface Dependencies
-streamlit>=1.46.1
-fastapi>=0.115.14
+streamlit>=1.47.1
+fastapi>=0.116.1
 uvicorn[standard]>=0.35.0
 pydantic>=2.11.7
 plotly>=6.2.0
 
 # Advanced Search Dependencies
 rank-bm25>=0.2.2
-scikit-learn>=1.7.0
+scikit-learn>=1.7.1
 
 # Document Processing for Advanced Chunking
 nltk>=3.9.1
 
 # Data analysis and visualization (used in Streamlit)
-pandas>=2.3.0
+pandas>=2.3.1
 
 # Development and testing
 pytest>=8.4.1

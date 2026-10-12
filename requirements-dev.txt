@@ -9,7 +9,7 @@
 black>=25.1.0
 flake8>=7.3.0
 isort>=6.0.1
-mypy>=1.16.1
+mypy>=1.17.0
 
 # Development and exploration
 jupyter>=1.1.1
@@ -23,7 +23,7 @@ seaborn>=0.13.2
 # Additional testing tools
 pytest-cov>=6.2.1
 pytest-mock>=3.14.1
-pytest-asyncio>=1.0.0
+pytest-asyncio>=1.1.0
 
 # Documentation
 sphinx>=8.2.3
